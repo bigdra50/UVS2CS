@@ -1,0 +1,31 @@
+using UnityEngine;
+
+public class PlayerInput : MonoBehaviour
+{
+    private object currentBullet;
+
+    private void OnInputSystemEventButton()
+    {
+        if (_isToggleOn)
+        {
+        }
+    }
+
+    private void OnInputSystemEventButton()
+    {
+        CustomEvent.Trigger("Fire", null);
+    }
+
+    private void OnInputSystemEventButton()
+    {
+    }
+
+    private void OnInputSystemEventButton()
+    {
+        CustomEvent.Trigger("ForcefieldOn", forcefieldVFX);
+    }
+
+    private void OnInputSystemEventButton()
+    {
+    }
+}

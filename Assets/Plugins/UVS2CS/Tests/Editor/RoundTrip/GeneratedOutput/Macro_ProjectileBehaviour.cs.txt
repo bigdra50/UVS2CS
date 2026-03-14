@@ -1,0 +1,27 @@
+using UnityEngine;
+
+public class Macro_ProjectileBehaviour : MonoBehaviour
+{
+    private void CustomEvent()
+    {
+    }
+
+    private void OnEnable()
+    {
+    }
+
+    private void FixedUpdate()
+    {
+        CustomEvent.Trigger("MoveProjectile", null);
+    }
+
+    private void CustomEvent()
+    {
+    }
+
+    private void CustomEvent()
+    {
+        yield return new WaitForSeconds(0f);
+        CustomEvent.Trigger("RemoveProjectile", null);
+    }
+}

@@ -1,0 +1,15 @@
+using UnityEngine;
+
+public class SpaceshipBehaviors_TutorialBase : MonoBehaviour
+{
+    private void FixedUpdate()
+    {
+        if (0f > 0.1f)
+        {
+        }
+    }
+
+    private void FixedUpdate()
+    {
+    }
+}

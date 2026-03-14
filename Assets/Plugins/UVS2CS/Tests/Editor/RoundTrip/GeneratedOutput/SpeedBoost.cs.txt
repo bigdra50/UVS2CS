@@ -1,0 +1,27 @@
+using UnityEngine;
+
+public class SpeedBoost : MonoBehaviour
+{
+    private bool boostActive = false;
+    private float timer = 1f;
+
+    private void OnTriggerEnter()
+    {
+        boostActive = true;
+        timer = 1f;
+    }
+
+    private void FixedUpdate()
+    {
+        if (boostActive)
+        {
+            if (timer > 0f)
+            {
+            }
+            else
+            {
+                boostActive = false;
+            }
+        }
+    }
+}

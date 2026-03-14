@@ -1,0 +1,13 @@
+using UnityEngine;
+
+public class Obstacle_Behavior_ER : MonoBehaviour
+{
+    private void FixedUpdate()
+    {
+    }
+
+    private void OnTriggerEnter2D()
+    {
+        /* SubGraph: SubgraphUnit - inline expansion needed */;
+    }
+}

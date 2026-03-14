@@ -1,0 +1,34 @@
+using UnityEngine;
+
+public class ProjectileBehavior : MonoBehaviour
+{
+    private void OnEnable()
+    {
+        /* Timer: complex timer - requires manual conversion */;
+    }
+
+    private void CustomEvent()
+    {
+    }
+
+    private void CustomEvent()
+    {
+    }
+
+    private void FixedUpdate()
+    {
+        CustomEvent.Trigger("MoveProjectile", null);
+        CustomEvent.Trigger("CollisionRaycastCheck", null);
+    }
+
+    private void CustomEvent()
+    {
+        if (false)
+        {
+            if (0f <= 0f)
+            {
+                CustomEvent.Trigger("RemoveProjectile", null);
+            }
+        }
+    }
+}

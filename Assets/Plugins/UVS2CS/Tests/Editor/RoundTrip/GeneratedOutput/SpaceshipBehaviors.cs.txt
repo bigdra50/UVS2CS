@@ -1,0 +1,30 @@
+using UnityEngine;
+
+public class SpaceshipBehaviors : MonoBehaviour
+{
+    private float rateOfFire = 0.8f;
+
+    private void FixedUpdate()
+    {
+        if (0f > 0.1f)
+        {
+        }
+    }
+
+    private void FixedUpdate()
+    {
+    }
+
+    private void CustomEvent()
+    {
+    }
+
+    private void FixedUpdate()
+    {
+        if (false)
+        {
+            /* SubGraph: SubgraphUnit - inline expansion needed */;
+            /* unhandled: PickRandomAudioClip */;
+        }
+    }
+}
