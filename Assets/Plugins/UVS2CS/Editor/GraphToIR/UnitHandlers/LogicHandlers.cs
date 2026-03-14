@@ -9,7 +9,9 @@ namespace UVS2CS.GraphToIR.UnitHandlers
         public bool CanHandle(IUnit unit) =>
             unit is And or Or or Negate or ExclusiveOr
             or Equal or NotEqual
-            or Greater or GreaterOrEqual or Less or LessOrEqual;
+            or Greater or GreaterOrEqual or Less or LessOrEqual
+            or Comparison or EqualityComparison or NumericComparison
+            or ApproximatelyEqual or NotApproximatelyEqual;
 
         public IRStatement HandleControlFlow(IUnit unit, FlowTracer tracer, ValueResolver resolver) => null;
 
@@ -42,6 +44,39 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                     return BinaryFromUnit(unit, BinOp.Less, resolver);
                 case LessOrEqual:
                     return BinaryFromUnit(unit, BinOp.LessOrEqual, resolver);
+
+                case ApproximatelyEqual:
+                {
+                    var a = resolver.Resolve(unit.valueInputs["a"]);
+                    var b = resolver.Resolve(unit.valueInputs["b"]);
+                    return new IRMethodCall
+                    {
+                        MethodName = "Approximately",
+                        DeclaringType = new IRTypeRef { FullName = "UnityEngine.Mathf", ShortName = "Mathf" },
+                        IsStatic = true,
+                        Arguments = { a, b },
+                    };
+                }
+                case NotApproximatelyEqual:
+                {
+                    var a = resolver.Resolve(unit.valueInputs["a"]);
+                    var b = resolver.Resolve(unit.valueInputs["b"]);
+                    return new IRUnaryOp
+                    {
+                        Operand = new IRMethodCall
+                        {
+                            MethodName = "Approximately",
+                            DeclaringType = new IRTypeRef { FullName = "UnityEngine.Mathf", ShortName = "Mathf" },
+                            IsStatic = true,
+                            Arguments = { a, b },
+                        },
+                        Operator = IR.UnaryOperator.LogicalNot,
+                    };
+                }
+                case Comparison:
+                case EqualityComparison:
+                case NumericComparison:
+                    return BinaryFromUnit(unit, BinOp.Equal, resolver);
 
                 default:
                     return new IRNull();

@@ -48,6 +48,8 @@ namespace UVS2CS.CSharpToIR
                     Expression = throwStmt.Expression != null ? ConvertExpression(throwStmt.Expression) : null,
                 },
                 TryStatementSyntax tryStmt => ConvertTryCatch(tryStmt),
+                SwitchStatementSyntax switchStmt => ConvertSwitch(switchStmt),
+                YieldStatementSyntax yieldStmt => ConvertYield(yieldStmt),
                 _ => null,
             };
         }
@@ -184,6 +186,57 @@ namespace UVS2CS.CSharpToIR
             };
         }
 
+        IRStatement ConvertSwitch(SwitchStatementSyntax switchStmt)
+        {
+            var irSwitch = new IRSwitch
+            {
+                Value = ConvertExpression(switchStmt.Expression),
+            };
+
+            foreach (var section in switchStmt.Sections)
+            {
+                foreach (var label in section.Labels)
+                {
+                    if (label is CaseSwitchLabelSyntax caseLabel)
+                    {
+                        var body = new IRBlock();
+                        foreach (var s in section.Statements)
+                        {
+                            if (s is BreakStatementSyntax) continue;
+                            var converted = ConvertStatement(s);
+                            if (converted != null) body.Statements.Add(converted);
+                        }
+                        irSwitch.Sections.Add(new IRSwitchSection
+                        {
+                            Label = ConvertExpression(caseLabel.Value),
+                            Body = body,
+                        });
+                    }
+                    else if (label is DefaultSwitchLabelSyntax)
+                    {
+                        var body = new IRBlock();
+                        foreach (var s in section.Statements)
+                        {
+                            if (s is BreakStatementSyntax) continue;
+                            var converted = ConvertStatement(s);
+                            if (converted != null) body.Statements.Add(converted);
+                        }
+                        irSwitch.DefaultBody = body;
+                    }
+                }
+            }
+
+            return irSwitch;
+        }
+
+        IRStatement ConvertYield(YieldStatementSyntax yieldStmt)
+        {
+            return new IRYieldReturn
+            {
+                Expression = yieldStmt.Expression != null ? ConvertExpression(yieldStmt.Expression) : null,
+            };
+        }
+
         public IRExpression ConvertExpression(ExpressionSyntax expr)
         {
             return expr switch
@@ -201,6 +254,19 @@ namespace UVS2CS.CSharpToIR
                 {
                     Operand = ConvertExpression(cast.Expression),
                     TargetType = _resolver.ResolveType(cast.Type),
+                },
+                ConditionalExpressionSyntax cond => new IRConditional
+                {
+                    Condition = ConvertExpression(cond.Condition),
+                    WhenTrue = ConvertExpression(cond.WhenTrue),
+                    WhenFalse = ConvertExpression(cond.WhenFalse),
+                },
+                ElementAccessExpressionSyntax elemAccess => new IRIndexAccess
+                {
+                    Target = ConvertExpression(elemAccess.Expression),
+                    Index = elemAccess.ArgumentList.Arguments.Count > 0
+                        ? ConvertExpression(elemAccess.ArgumentList.Arguments[0].Expression)
+                        : new IRLiteral { Value = 0, Type = IRTypeRef.Int },
                 },
                 _ => new IRIdentifier { Name = expr.ToString() },
             };

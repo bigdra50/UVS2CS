@@ -71,6 +71,19 @@ namespace UVS2CS.IR
         public IRExpression Fallback { get; set; }
     }
 
+    public sealed class IRConditional : IRExpression
+    {
+        public IRExpression Condition { get; set; }
+        public IRExpression WhenTrue { get; set; }
+        public IRExpression WhenFalse { get; set; }
+    }
+
+    public sealed class IRIndexAccess : IRExpression
+    {
+        public IRExpression Target { get; set; }
+        public IRExpression Index { get; set; }
+    }
+
     public enum BinaryOperator
     {
         Add,

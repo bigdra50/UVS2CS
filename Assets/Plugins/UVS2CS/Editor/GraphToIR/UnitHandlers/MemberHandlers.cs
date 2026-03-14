@@ -6,7 +6,7 @@ namespace UVS2CS.GraphToIR.UnitHandlers
 {
     public sealed class MemberHandlers : IUnitHandler
     {
-        public bool CanHandle(IUnit unit) => unit is InvokeMember or GetMember or SetMember;
+        public bool CanHandle(IUnit unit) => unit is InvokeMember or GetMember or SetMember or CreateStruct or Expose;
 
         public IRStatement HandleControlFlow(IUnit unit, FlowTracer tracer, ValueResolver resolver)
         {
@@ -56,6 +56,25 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                 {
                     var nameExpr = resolver.Resolve(setMember.valueInputs["input"]);
                     return nameExpr;
+                }
+
+                case CreateStruct createStruct:
+                {
+                    var ctor = new IRConstructorCall
+                    {
+                        Type = IRTypeRef.FromType(createStruct.type),
+                    };
+                    return ctor;
+                }
+
+                case Expose expose:
+                {
+                    var input = resolver.Resolve(expose.valueInputs.First());
+                    return new IRMemberAccess
+                    {
+                        Target = input,
+                        MemberName = port.key,
+                    };
                 }
 
                 default:

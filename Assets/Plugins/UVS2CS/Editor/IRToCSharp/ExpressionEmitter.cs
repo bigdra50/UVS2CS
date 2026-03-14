@@ -23,6 +23,8 @@ namespace UVS2CS.IRToCSharp
                     ? $"{Emit(nc.Value)} == null"
                     : $"{Emit(nc.Value)} != null",
                 IRNullCoalesce coal => $"{Emit(coal.Left)} ?? {Emit(coal.Fallback)}",
+                IRConditional cond => $"{Emit(cond.Condition)} ? {Emit(cond.WhenTrue)} : {Emit(cond.WhenFalse)}",
+                IRIndexAccess idx => $"{Emit(idx.Target)}[{Emit(idx.Index)}]",
                 _ => "/* unsupported expression */",
             };
         }

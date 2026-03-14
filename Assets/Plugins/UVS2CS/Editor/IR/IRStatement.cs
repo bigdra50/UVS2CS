@@ -64,6 +64,24 @@ namespace UVS2CS.IR
 
     public sealed class IRBreak : IRStatement { }
 
+    public sealed class IRSwitch : IRStatement
+    {
+        public IRExpression Value { get; set; }
+        public List<IRSwitchSection> Sections { get; } = new();
+        public IRBlock DefaultBody { get; set; }
+    }
+
+    public sealed class IRSwitchSection
+    {
+        public IRExpression Label { get; set; }
+        public IRBlock Body { get; set; }
+    }
+
+    public sealed class IRYieldReturn : IRStatement
+    {
+        public IRExpression Expression { get; set; }
+    }
+
     public sealed class IRThrow : IRStatement
     {
         public IRExpression Expression { get; set; }

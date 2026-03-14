@@ -24,12 +24,17 @@ namespace UVS2CS.GraphToIR.UnitHandlers
         {
             var registry = new UnitHandlerRegistry();
             registry.Register(new LiteralHandler());
+            registry.Register(new NullHandlers());
+            registry.Register(new CustomEventHandlers());
             registry.Register(new EventHandlers());
             registry.Register(new ControlFlowHandlers());
             registry.Register(new VariableHandlers());
             registry.Register(new MemberHandlers());
             registry.Register(new LogicHandlers());
             registry.Register(new MathHandlers());
+            registry.Register(new TimeHandlers());
+            registry.Register(new CollectionHandlers());
+            registry.Register(new NestingHandlers());
             return registry;
         }
     }

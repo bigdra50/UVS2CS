@@ -48,6 +48,14 @@ namespace UVS2CS.IRToCSharp
                 case IRTryCatch tryCatch:
                     EmitTryCatch(tryCatch, w);
                     break;
+                case IRSwitch switchStmt:
+                    EmitSwitch(switchStmt, w);
+                    break;
+                case IRYieldReturn yieldRet:
+                    w.WriteLine(yieldRet.Expression != null
+                        ? $"yield return {ExpressionEmitter.Emit(yieldRet.Expression)};"
+                        : "yield return null;");
+                    break;
             }
         }
 
@@ -114,6 +122,29 @@ namespace UVS2CS.IRToCSharp
             w.OpenBrace();
             if (whileStmt.Body != null)
                 EmitBlock(whileStmt.Body, w);
+            w.CloseBrace();
+        }
+
+        static void EmitSwitch(IRSwitch switchStmt, IndentWriter w)
+        {
+            w.WriteLine($"switch ({ExpressionEmitter.Emit(switchStmt.Value)})");
+            w.OpenBrace();
+            foreach (var section in switchStmt.Sections)
+            {
+                w.WriteLine($"case {ExpressionEmitter.Emit(section.Label)}:");
+                w.Indent();
+                if (section.Body != null) EmitBlock(section.Body, w);
+                w.WriteLine("break;");
+                w.Unindent();
+            }
+            if (switchStmt.DefaultBody != null && switchStmt.DefaultBody.Statements.Count > 0)
+            {
+                w.WriteLine("default:");
+                w.Indent();
+                EmitBlock(switchStmt.DefaultBody, w);
+                w.WriteLine("break;");
+                w.Unindent();
+            }
             w.CloseBrace();
         }
 

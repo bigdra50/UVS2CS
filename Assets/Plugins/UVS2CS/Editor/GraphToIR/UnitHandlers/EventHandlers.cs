@@ -9,12 +9,17 @@ namespace UVS2CS.GraphToIR.UnitHandlers
 
         public IRStatement HandleControlFlow(IUnit unit, FlowTracer tracer, ValueResolver resolver) => null;
 
-        public IRExpression HandleValue(IUnit unit, ValueOutput port, ValueResolver resolver) => null;
+        public IRExpression HandleValue(IUnit unit, ValueOutput port, ValueResolver resolver)
+        {
+            // Physics events expose collision/trigger data
+            return new IRIdentifier { Name = port.key };
+        }
 
         public static string GetMethodName(IUnit unit)
         {
             return unit switch
             {
+                // Lifecycle
                 Start => "Start",
                 Update => "Update",
                 FixedUpdate => "FixedUpdate",
@@ -22,6 +27,53 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                 OnEnable => "OnEnable",
                 OnDisable => "OnDisable",
                 OnDestroy => "OnDestroy",
+
+                // Physics 3D
+                OnCollisionEnter => "OnCollisionEnter",
+                OnCollisionStay => "OnCollisionStay",
+                OnCollisionExit => "OnCollisionExit",
+                OnTriggerEnter => "OnTriggerEnter",
+                OnTriggerStay => "OnTriggerStay",
+                OnTriggerExit => "OnTriggerExit",
+
+                // Physics 2D
+                OnCollisionEnter2D => "OnCollisionEnter2D",
+                OnCollisionStay2D => "OnCollisionStay2D",
+                OnCollisionExit2D => "OnCollisionExit2D",
+                OnTriggerEnter2D => "OnTriggerEnter2D",
+                OnTriggerStay2D => "OnTriggerStay2D",
+                OnTriggerExit2D => "OnTriggerExit2D",
+
+                // Mouse
+                OnMouseDown => "OnMouseDown",
+                OnMouseUp => "OnMouseUp",
+                OnMouseDrag => "OnMouseDrag",
+                OnMouseEnter => "OnMouseEnter",
+                OnMouseExit => "OnMouseExit",
+                OnMouseOver => "OnMouseOver",
+                OnMouseUpAsButton => "OnMouseUpAsButton",
+
+                // Application
+                OnApplicationFocus => "OnApplicationFocus",
+                OnApplicationPause => "OnApplicationPause",
+                OnApplicationQuit => "OnApplicationQuit",
+
+                // Rendering
+                OnBecameVisible => "OnBecameVisible",
+                OnBecameInvisible => "OnBecameInvisible",
+
+                // Animation
+                OnAnimatorMove => "OnAnimatorMove",
+                OnAnimatorIK => "OnAnimatorIK",
+
+                // GUI
+                OnGUI => "OnGUI",
+
+                // Hierarchy
+                OnTransformParentChanged => "OnTransformParentChanged",
+                OnTransformChildrenChanged => "OnTransformChildrenChanged",
+
+                // Fallback: use type name
                 _ => unit.GetType().Name,
             };
         }
