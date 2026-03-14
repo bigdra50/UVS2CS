@@ -104,6 +104,31 @@ namespace UVS2CS.IRToGraph
                 case IRBlock block:
                     WriteBlock(block, graph, factory, conn, layout, ref lastOutput);
                     break;
+
+                case IRSwitch switchStmt:
+                    WriteSwitchAsIfChain(switchStmt, graph, factory, conn, layout, ref lastOutput);
+                    break;
+
+                case IRYieldReturn yieldRet:
+                    // WaitForSeconds 等のコルーチン yield → コメントとして残す
+                    break;
+
+                case IRVariableDeclaration decl:
+                    if (decl.Initializer != null)
+                    {
+                        WriteAssignment(new IRAssignment
+                        {
+                            Target = new IRIdentifier { Name = decl.Name },
+                            Value = decl.Initializer,
+                        }, factory, conn, ref lastOutput);
+                    }
+                    break;
+
+                case IRTryCatch:
+                case IRThrow:
+                case IRReturn:
+                    // 複雑な制御フロー → Graph では直接表現が困難
+                    break;
             }
         }
 
@@ -181,6 +206,30 @@ namespace UVS2CS.IRToGraph
             }
 
             lastOutput = null;
+        }
+
+        void WriteSwitchAsIfChain(IRSwitch switchStmt, FlowGraph graph, UnitFactory factory,
+            ConnectionBuilder conn, LayoutCalculator layout, ref ControlOutput lastOutput)
+        {
+            // Switch を If チェーンとして展開
+            foreach (var section in switchStmt.Sections)
+            {
+                var condition = new IRBinaryOp
+                {
+                    Left = switchStmt.Value,
+                    Right = section.Label,
+                    Operator = IR.BinaryOperator.Equal,
+                };
+                var ifStmt = new IRIf
+                {
+                    Condition = condition,
+                    ThenBody = section.Body,
+                };
+                WriteIf(ifStmt, graph, factory, conn, layout, ref lastOutput);
+            }
+
+            if (switchStmt.DefaultBody != null)
+                WriteBlock(switchStmt.DefaultBody, graph, factory, conn, layout, ref lastOutput);
         }
 
         void WriteFor(IRFor forStmt, FlowGraph graph, UnitFactory factory,

@@ -11,7 +11,7 @@ namespace UVS2CS.GraphToIR.UnitHandlers
             or TryCatch or Throw
             or SwitchOnInteger or SwitchOnString or SwitchOnEnum
             or Cache or Once or ToggleFlow or ToggleValue
-            or SelectOnFlow;
+            or SelectOnFlow or SelectOnInteger or SelectOnString or SelectOnEnum;
 
         public IRStatement HandleControlFlow(IUnit unit, FlowTracer tracer, ValueResolver resolver)
         {
@@ -50,6 +50,13 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                     };
                 case SelectOnFlow:
                     return new IRIdentifier { Name = "/* SelectOnFlow result */" };
+                case SelectOnInteger:
+                case SelectOnString:
+                case SelectOnEnum:
+                {
+                    var selector = resolver.Resolve(unit.valueInputs["selector"]);
+                    return new IRIdentifier { Name = $"/* Select({ExpressionName(selector)}) */" };
+                }
                 default:
                     return null;
             }
@@ -251,5 +258,7 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                 ElseBody = offBlock.Statements.Count > 0 ? offBlock : null,
             };
         }
+
+        static string ExpressionName(IRExpression expr) => expr is IRIdentifier id ? id.Name : "value";
     }
 }

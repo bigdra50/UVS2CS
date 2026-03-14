@@ -5,7 +5,7 @@ namespace UVS2CS.GraphToIR.UnitHandlers
 {
     public sealed class LiteralHandler : IUnitHandler
     {
-        public bool CanHandle(IUnit unit) => unit is Literal || unit is This || unit is Null;
+        public bool CanHandle(IUnit unit) => unit is Literal or This or Null or Formula;
 
         public IRStatement HandleControlFlow(IUnit unit, FlowTracer tracer, ValueResolver resolver) => null;
 
@@ -20,6 +20,7 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                 },
                 This => new IRThis(),
                 Null => new IRNull(),
+                Formula formula => new IRIdentifier { Name = $"/* Formula: requires manual conversion */" },
                 _ => new IRNull(),
             };
         }

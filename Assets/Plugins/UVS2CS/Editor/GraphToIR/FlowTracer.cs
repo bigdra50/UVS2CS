@@ -54,14 +54,42 @@ namespace UVS2CS.GraphToIR
         {
             switch (unit)
             {
+                // 分岐系: ハンドラ内で各分岐を TraceFrom するため継続なし
                 case If:
+                case SwitchOnInteger:
+                case SwitchOnString:
+                case SwitchOnEnum:
+                case TryCatch:
+                case ToggleFlow:
                     return null;
+
+                // ループ系: exit ポートが継続
                 case While:
                 case For:
                 case ForEach:
                     return unit.controlOutputs.FirstOrDefault(p => p.key == "exit");
+
+                // Once: after ポートが継続（once は初回のみ）
+                case Once:
+                    return unit.controlOutputs.FirstOrDefault(p => p.key == "after");
+
+                // SelectOnFlow: exit ポートが継続
+                case SelectOnFlow:
+                    return unit.controlOutputs.FirstOrDefault(p => p.key == "exit");
+
+                // WaitUnit 系: exit ポートが継続（コルーチン完了後）
+                case WaitUnit:
+                    return unit.controlOutputs.FirstOrDefault(p => p.key == "exit");
+
+                // Timer/Cooldown: 複数出力がある複雑な Unit、継続なし
+                case Timer:
+                case Cooldown:
+                    return null;
+
+                // デフォルト: exit → assigned → 最初のポート
                 default:
                     return unit.controlOutputs.FirstOrDefault(p => p.key == "exit")
+                        ?? unit.controlOutputs.FirstOrDefault(p => p.key == "assigned")
                         ?? unit.controlOutputs.FirstOrDefault();
             }
         }

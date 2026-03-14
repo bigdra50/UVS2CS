@@ -6,10 +6,23 @@ namespace UVS2CS.GraphToIR.UnitHandlers
 {
     public sealed class VariableHandlers : IUnitHandler
     {
-        public bool CanHandle(IUnit unit) => unit is GetVariable or SetVariable or IsVariableDefined;
+        public bool CanHandle(IUnit unit) => unit is GetVariable or SetVariable or IsVariableDefined or SaveVariables;
 
         public IRStatement HandleControlFlow(IUnit unit, FlowTracer tracer, ValueResolver resolver)
         {
+            if (unit is SaveVariables)
+            {
+                return new IRExpressionStatement
+                {
+                    Expression = new IRMethodCall
+                    {
+                        MethodName = "Save",
+                        DeclaringType = new IRTypeRef { FullName = "Unity.VisualScripting.SavedVariables", ShortName = "SavedVariables" },
+                        IsStatic = true,
+                    },
+                };
+            }
+
             if (unit is SetVariable setVar)
             {
                 var nameExpr = resolver.Resolve(setVar.valueInputs["name"]);
