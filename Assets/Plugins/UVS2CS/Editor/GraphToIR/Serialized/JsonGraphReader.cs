@@ -63,13 +63,24 @@ namespace UVS2CS.GraphToIR.Serialized
         {
             foreach (var kv in _snapshot.Variables)
             {
-                ir.Fields.Add(new IRField
+                var field = new IRField
                 {
                     Name = kv.Key,
-                    Type = IRTypeRef.Object,
+                    Type = kv.Value != null ? IRTypeRef.FromType(kv.Value.GetType()) : IRTypeRef.Object,
                     Modifier = FieldModifier.Private,
                     Origin = VariableOrigin.Graph,
-                });
+                };
+
+                if (kv.Value != null)
+                {
+                    field.DefaultValue = new IRLiteral
+                    {
+                        Value = kv.Value,
+                        Type = field.Type,
+                    };
+                }
+
+                ir.Fields.Add(field);
             }
         }
 
@@ -139,6 +150,14 @@ namespace UVS2CS.GraphToIR.Serialized
                 UnitKind.InvokeMember => ConvertInvokeMember(unit),
                 UnitKind.SetMember => ConvertSetMember(unit),
                 UnitKind.Variable when unit.TypeName.Contains("SetVariable") => ConvertSetVariable(unit),
+                UnitKind.Variable when unit.TypeName.Contains("SaveVariables") => new IRExpressionStatement
+                {
+                    Expression = new IRMethodCall
+                    {
+                        MethodName = "Save", IsStatic = true,
+                        DeclaringType = new IRTypeRef { ShortName = "SavedVariables", FullName = "Unity.VisualScripting.SavedVariables" },
+                    },
+                },
                 UnitKind.ControlFlow => ConvertControlFlow(unit),
                 UnitKind.TriggerCustomEvent => ConvertTriggerCustomEvent(unit),
                 UnitKind.Time => ConvertTime(unit),
@@ -326,7 +345,15 @@ namespace UVS2CS.GraphToIR.Serialized
             switch (unit.Kind)
             {
                 case UnitKind.Literal:
-                    return new IRLiteral { Value = unit.LiteralValue, Type = IRTypeRef.Object };
+                {
+                    // This ノード
+                    if (unit.TypeName.Contains("This")) return new IRThis();
+
+                    var litType = unit.LiteralValue != null
+                        ? IRTypeRef.FromType(unit.LiteralValue.GetType())
+                        : (unit.LiteralType != null ? IRTypeRef.FromName(unit.LiteralType) : IRTypeRef.Object);
+                    return new IRLiteral { Value = unit.LiteralValue, Type = litType };
+                }
 
                 case UnitKind.Variable:
                 {

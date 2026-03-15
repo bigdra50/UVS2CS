@@ -2,4 +2,29 @@ using UnityEngine;
 
 public class PlayerInput : MonoBehaviour
 {
+    private object currentBullet;
+
+    private void OnInputSystemEventButton()
+    {
+        CustomEvent.Trigger("ForcefieldOn", forcefieldVFX);
+    }
+
+    private void OnInputSystemEventButton_1()
+    {
+        null.Play(null);
+    }
+
+    private void OnInputSystemEventButton_2()
+    {
+        CustomEvent.Trigger("Fire", null);
+    }
+
+    private void OnInputSystemEventButton_3()
+    {
+        null.Quit();
+    }
+
+    private void OnInputSystemEventButton_4()
+    {
+    }
 }

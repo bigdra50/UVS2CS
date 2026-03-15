@@ -2,4 +2,5 @@ using UnityEngine;
 
 public class SuperUnit_ShootingInput : MonoBehaviour
 {
+    private float nextShot = 0f;
 }

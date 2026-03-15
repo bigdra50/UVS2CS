@@ -3,7 +3,8 @@
     "rootNamespace": "UVS2CS",
     "references": [
         "Unity.VisualScripting.Core",
-        "Unity.VisualScripting.Flow"
+        "Unity.VisualScripting.Flow",
+        "Newtonsoft.Json"
     ],
     "includePlatforms": [
         "Editor"

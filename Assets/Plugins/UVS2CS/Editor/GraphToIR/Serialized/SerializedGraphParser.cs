@@ -1,16 +1,11 @@
-using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using System.Linq;
+using Newtonsoft.Json.Linq;
 using Unity.VisualScripting;
 using UnityEditor;
-using UnityEngine;
 
 namespace UVS2CS.GraphToIR.Serialized
 {
-    /// <summary>
-    /// ScriptGraphAsset の SerializedObject から _data._json を取得し、
-    /// SerializedGraphSnapshot を構築する。
-    /// </summary>
     public static class SerializedGraphParser
     {
         public static SerializedGraphSnapshot Parse(ScriptGraphAsset asset)
@@ -27,238 +22,302 @@ namespace UVS2CS.GraphToIR.Serialized
         {
             var snapshot = new SerializedGraphSnapshot();
 
-            ParseVariables(json, snapshot);
-            ParseElements(json, snapshot);
+            JObject root;
+            try { root = JObject.Parse(json); }
+            catch { return snapshot; }
+
+            var graph = root["graph"] as JObject ?? root;
+
+            ParseVariables(graph, snapshot);
+            ParseElements(graph, snapshot);
 
             return snapshot;
         }
 
-        static void ParseVariables(string json, SerializedGraphSnapshot snapshot)
+        static void ParseVariables(JObject graph, SerializedGraphSnapshot snapshot)
         {
-            // "variables":{"collection":{"$content":[{"name":"...","value":...}]}}
-            var varMatch = Regex.Match(json, @"""variables"":\{""collection"":\{""\$content"":\[(.+?)\]", RegexOptions.Singleline);
-            if (!varMatch.Success) return;
+            var vars = graph.SelectToken("variables.collection.$content") as JArray;
+            if (vars == null) return;
 
-            foreach (Match m in Regex.Matches(varMatch.Groups[1].Value, @"\{""name"":""([^""]+)"""))
-                snapshot.Variables[m.Groups[1].Value] = null;
-        }
-
-        static void ParseElements(string json, SerializedGraphSnapshot snapshot)
-        {
-            var elemMatch = Regex.Match(json, @"""elements"":\[(.+)\],""\$version", RegexOptions.Singleline);
-            if (!elemMatch.Success)
+            foreach (var v in vars)
             {
-                elemMatch = Regex.Match(json, @"""elements"":\[(.+)\]}", RegexOptions.Singleline);
-                if (!elemMatch.Success) return;
-            }
+                var name = v["name"]?.ToString();
+                if (name == null) continue;
 
-            var elements = elemMatch.Groups[1].Value;
-
-            var depth = 0;
-            var start = -1;
-
-            for (var i = 0; i < elements.Length; i++)
-            {
-                if (elements[i] == '{')
+                object value = null;
+                var valToken = v["value"];
+                if (valToken != null && valToken.Type != JTokenType.Null)
                 {
-                    if (depth == 0) start = i;
-                    depth++;
+                    if (valToken is JObject valObj && valObj["$content"] != null)
+                        value = ExtractContent(valObj);
+                    else
+                        value = ExtractPrimitive(valToken);
                 }
-                else if (elements[i] == '}')
-                {
-                    depth--;
-                    if (depth == 0 && start >= 0)
-                    {
-                        var obj = elements.Substring(start, i - start + 1);
-                        ParseElement(obj, snapshot);
-                        start = -1;
-                    }
-                }
+
+                snapshot.Variables[name] = value;
             }
         }
 
-        static void ParseElement(string obj, SerializedGraphSnapshot snapshot)
+        static void ParseElements(JObject graph, SerializedGraphSnapshot snapshot)
         {
-            var typeName = ExtractString(obj, "$type");
-            if (typeName == null) return;
+            var elements = graph["elements"] as JArray;
+            if (elements == null) return;
 
-            // 型名正規化: Bolt.* / Ludiq.* → Unity.VisualScripting.*
-            typeName = NormalizeTypeName(typeName);
-
-            if (typeName == "Unity.VisualScripting.ControlConnection")
+            // 2パス: 1パス目で Unit ($id 付き) を登録、2パス目で接続 ($ref 解決)
+            foreach (var elem in elements)
             {
-                snapshot.ControlEdges.Add(ParseEdge(obj));
-                return;
-            }
-            if (typeName == "Unity.VisualScripting.ValueConnection")
-            {
-                snapshot.ValueEdges.Add(ParseEdge(obj));
-                return;
-            }
-            if (typeName.Contains("GraphGroup") || typeName.Contains("StickyNote"))
-                return;
+                if (elem is not JObject obj) continue;
+                var typeName = obj["$type"]?.ToString();
+                if (typeName == null) continue;
 
+                typeName = NormalizeTypeName(typeName);
+
+                if (typeName == "Unity.VisualScripting.ControlConnection")
+                {
+                    snapshot.ControlEdges.Add(ParseEdge(obj));
+                    continue;
+                }
+                if (typeName == "Unity.VisualScripting.ValueConnection")
+                {
+                    snapshot.ValueEdges.Add(ParseEdge(obj));
+                    continue;
+                }
+                if (typeName.Contains("GraphGroup") || typeName.Contains("StickyNote"))
+                    continue;
+
+                var unit = ParseUnit(obj, typeName);
+                if (!string.IsNullOrEmpty(unit.Id))
+                    snapshot.Units[unit.Id] = unit;
+            }
+        }
+
+        static SerializedUnit ParseUnit(JObject obj, string typeName)
+        {
             var unit = new SerializedUnit
             {
+                Id = obj["$id"]?.ToString(),
                 TypeName = typeName,
                 Kind = ClassifyUnit(typeName),
             };
 
-            unit.Id = ExtractString(obj, "$id");
-
-            // member 情報
-            var memberMatch = Regex.Match(obj, @"""member"":\{([^}]+)\}");
-            if (memberMatch.Success)
+            // position
+            var pos = obj["position"] as JObject;
+            if (pos != null)
             {
-                var m = memberMatch.Groups[1].Value;
+                unit.PositionX = pos["x"]?.Value<float>() ?? 0;
+                unit.PositionY = pos["y"]?.Value<float>() ?? 0;
+            }
+
+            // member
+            var memberObj = obj["member"] as JObject;
+            if (memberObj != null)
+            {
                 unit.Member = new SerializedMember
                 {
-                    Name = ExtractString(m, "name"),
-                    TargetTypeName = ExtractString(m, "targetTypeName") ?? ExtractString(m, "targetType"),
+                    Name = memberObj["name"]?.ToString(),
+                    TargetTypeName = memberObj["targetTypeName"]?.ToString()
+                        ?? memberObj["targetType"]?.ToString(),
                 };
 
-                var paramMatch = Regex.Match(m, @"""parameterTypes"":\[([^\]]*)\]");
-                if (paramMatch.Success)
+                var paramTypes = memberObj["parameterTypes"] as JArray;
+                if (paramTypes != null)
                 {
-                    foreach (Match pm in Regex.Matches(paramMatch.Groups[1].Value, @"""([^""]+)"""))
-                        unit.Member.ParameterTypeNames.Add(pm.Groups[1].Value);
+                    foreach (var p in paramTypes)
+                        unit.Member.ParameterTypeNames.Add(p.ToString());
                 }
             }
 
             // defaultValues
-            ParseDefaultValues(obj, unit);
-
-            // VariableKind
-            var kindStr = ExtractString(obj, "kind");
-            if (kindStr != null) unit.VariableKind = kindStr;
-
-            // argumentCount
-            var argCountMatch = Regex.Match(obj, @"""argumentCount"":(\d+)");
-            if (argCountMatch.Success) unit.ArgumentCount = int.Parse(argCountMatch.Groups[1].Value);
-
-            // coroutine
-            if (obj.Contains(@"""coroutine"":true")) unit.Coroutine = true;
-
-            // Literal value/type
-            var literalTypeMatch = Regex.Match(obj, @"""type"":\{[^}]*""\$type"":""([^""]+)""");
-            if (unit.Kind == UnitKind.Literal && literalTypeMatch.Success)
-                unit.LiteralType = literalTypeMatch.Groups[1].Value;
-
-            if (!string.IsNullOrEmpty(unit.Id))
-                snapshot.Units[unit.Id] = unit;
-        }
-
-        static void ParseDefaultValues(string obj, SerializedUnit unit)
-        {
-            // defaultValues のキーと値を抽出
-            var dvMatch = Regex.Match(obj, @"""defaultValues"":\{(.+?)\},""position""", RegexOptions.Singleline);
-            if (!dvMatch.Success)
+            var defaults = obj["defaultValues"] as JObject;
+            if (defaults != null)
             {
-                dvMatch = Regex.Match(obj, @"""defaultValues"":\{(.+?)\}", RegexOptions.Singleline);
-                if (!dvMatch.Success) return;
-            }
-
-            var dvStr = dvMatch.Groups[1].Value;
-
-            // "$content":"stringValue" パターン
-            foreach (Match m in Regex.Matches(dvStr, @"""([^""]+)"":\{""\$content"":""([^""]*)"","))
-                unit.DefaultValues[m.Groups[1].Value] = m.Groups[2].Value;
-
-            // "$content":numericValue パターン
-            foreach (Match m in Regex.Matches(dvStr, @"""([^""]+)"":\{""\$content"":([0-9.eE+-]+),"))
-            {
-                if (!unit.DefaultValues.ContainsKey(m.Groups[1].Value))
+                foreach (var kv in defaults)
                 {
-                    if (float.TryParse(m.Groups[2].Value, System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out var f))
-                        unit.DefaultValues[m.Groups[1].Value] = f;
+                    var val = kv.Value;
+                    if (val == null || val.Type == JTokenType.Null)
+                    {
+                        unit.DefaultValues[kv.Key] = null;
+                        continue;
+                    }
+
+                    if (val is JObject valObj && valObj["$content"] != null)
+                        unit.DefaultValues[kv.Key] = ExtractContent(valObj);
+                    else
+                        unit.DefaultValues[kv.Key] = ExtractPrimitive(val);
                 }
             }
 
-            // "$content":true/false パターン
-            foreach (Match m in Regex.Matches(dvStr, @"""([^""]+)"":\{""\$content"":(true|false),"))
+            // kind (VariableKind)
+            var kindStr = obj["kind"]?.ToString();
+            if (kindStr != null) unit.VariableKind = kindStr;
+
+            // specifyFallback
+            var specifyFallback = obj["specifyFallback"];
+            if (specifyFallback != null)
+                unit.DefaultValues["_specifyFallback"] = specifyFallback.Value<bool>();
+
+            // argumentCount
+            var argCount = obj["argumentCount"];
+            if (argCount != null) unit.ArgumentCount = argCount.Value<int>();
+
+            // coroutine
+            var coroutine = obj["coroutine"];
+            if (coroutine != null) unit.Coroutine = coroutine.Value<bool>();
+
+            // chainable
+            var chainable = obj["chainable"];
+            if (chainable != null)
+                unit.DefaultValues["_chainable"] = chainable.Value<bool>();
+
+            // branchCount (Sequence)
+            var branchCount = obj["branchCount"];
+            if (branchCount != null) unit.OutputCount = branchCount.Value<int>();
+
+            // options (Switch)
+            var options = obj["options"] as JArray;
+            if (options != null) unit.OutputCount = options.Count;
+
+            // Literal: type and value
+            var typeToken = obj["type"];
+            if (typeToken is JObject typeObj)
             {
-                if (!unit.DefaultValues.ContainsKey(m.Groups[1].Value))
-                    unit.DefaultValues[m.Groups[1].Value] = m.Groups[2].Value == "true";
+                unit.LiteralType = typeObj["$type"]?.ToString();
+            }
+            var valueToken = obj["value"];
+            if (valueToken != null)
+            {
+                if (valueToken is JObject valueObj && valueObj["$content"] != null)
+                    unit.LiteralValue = ExtractContent(valueObj);
+                else
+                    unit.LiteralValue = ExtractPrimitive(valueToken);
             }
 
-            // null パターン
-            foreach (Match m in Regex.Matches(dvStr, @"""([^""]+)"":null"))
-            {
-                if (!unit.DefaultValues.ContainsKey(m.Groups[1].Value))
-                    unit.DefaultValues[m.Groups[1].Value] = null;
-            }
+            return unit;
         }
 
-        static SerializedEdge ParseEdge(string obj)
+        static SerializedEdge ParseEdge(JObject obj)
         {
             return new SerializedEdge
             {
-                SourceUnitId = ExtractRef(obj, "sourceUnit"),
-                SourceKey = ExtractString(obj, "sourceKey"),
-                DestUnitId = ExtractRef(obj, "destinationUnit"),
-                DestKey = ExtractString(obj, "destinationKey"),
+                SourceUnitId = (obj["sourceUnit"] as JObject)?["$ref"]?.ToString(),
+                SourceKey = obj["sourceKey"]?.ToString(),
+                DestUnitId = (obj["destinationUnit"] as JObject)?["$ref"]?.ToString(),
+                DestKey = obj["destinationKey"]?.ToString(),
+            };
+        }
+
+        static object ExtractContent(JObject wrapper)
+        {
+            var content = wrapper["$content"];
+            var type = wrapper["$type"]?.ToString();
+
+            if (content == null || content.Type == JTokenType.Null) return null;
+
+            return type switch
+            {
+                "System.String" => content.ToString(),
+                "System.Int32" => content.Value<int>(),
+                "System.Single" => content.Value<float>(),
+                "System.Double" => content.Value<double>(),
+                "System.Boolean" => content.Value<bool>(),
+                "System.Int64" => content.Value<long>(),
+                "UnityEngine.ForceMode" => content.Value<int>(),
+                _ when type != null && type.StartsWith("UnityEngine.") =>
+                    content.Type == JTokenType.Integer ? content.Value<int>() : (object)content.ToString(),
+                _ => content.Type switch
+                {
+                    JTokenType.Integer => content.Value<int>(),
+                    JTokenType.Float => content.Value<float>(),
+                    JTokenType.Boolean => content.Value<bool>(),
+                    JTokenType.String => content.ToString(),
+                    _ => content.ToString(),
+                },
+            };
+        }
+
+        static object ExtractPrimitive(JToken token)
+        {
+            return token.Type switch
+            {
+                JTokenType.Integer => token.Value<int>(),
+                JTokenType.Float => token.Value<float>(),
+                JTokenType.Boolean => token.Value<bool>(),
+                JTokenType.String => token.ToString(),
+                JTokenType.Null => null,
+                _ => token.ToString(),
             };
         }
 
         static UnitKind ClassifyUnit(string typeName)
         {
-            if (typeName.Contains("InvokeMember")) return UnitKind.InvokeMember;
-            if (typeName.Contains("GetMember")) return UnitKind.GetMember;
-            if (typeName.Contains("SetMember")) return UnitKind.SetMember;
-            if (typeName.Contains("GetVariable")) return UnitKind.Variable;
-            if (typeName.Contains("SetVariable")) return UnitKind.Variable;
-            if (typeName.Contains("IsVariableDefined")) return UnitKind.Variable;
-            if (typeName.Contains("Literal")) return UnitKind.Literal;
-            if (typeName.Contains("If") || typeName.Contains("For") || typeName.Contains("While")
-                || typeName.Contains("Sequence") || typeName.Contains("Switch") || typeName.Contains("Break"))
+            var name = typeName.Split('.').Last();
+
+            if (name == "InvokeMember") return UnitKind.InvokeMember;
+            if (name == "GetMember") return UnitKind.GetMember;
+            if (name == "SetMember") return UnitKind.SetMember;
+            if (name == "GetVariable" || name == "SetVariable" || name == "IsVariableDefined"
+                || name == "SaveVariables") return UnitKind.Variable;
+            if (name == "Literal") return UnitKind.Literal;
+            if (name == "This") return UnitKind.Literal;
+            if (name == "Null") return UnitKind.Null;
+            if (name == "NullCheck") return UnitKind.NullCheck;
+            if (name == "NullCoalesce") return UnitKind.NullCheck;
+            if (name == "CustomEvent") return UnitKind.CustomEvent;
+            if (name == "TriggerCustomEvent") return UnitKind.TriggerCustomEvent;
+            if (name == "CreateStruct") return UnitKind.CreateStruct;
+            if (name == "Expose") return UnitKind.Expose;
+            if (name == "Formula") return UnitKind.Formula;
+
+            if (name is "If" or "For" or "ForEach" or "While" or "Sequence" or "Break"
+                or "SwitchOnInteger" or "SwitchOnString" or "SwitchOnEnum"
+                or "Once" or "Cache" or "ToggleFlow" or "ToggleValue"
+                or "TryCatch" or "Throw" or "SelectOnFlow")
                 return UnitKind.ControlFlow;
-            if (typeName.Contains("Start") || typeName.Contains("Update") || typeName.Contains("FixedUpdate")
-                || typeName.Contains("OnEnable") || typeName.Contains("OnDisable") || typeName.Contains("OnDestroy")
-                || typeName.Contains("OnTrigger") || typeName.Contains("OnCollision")
-                || typeName.Contains("OnMouse") || typeName.Contains("OnInput") || typeName.Contains("Event"))
-                return UnitKind.Event;
-            if (typeName.Contains("CustomEvent")) return UnitKind.CustomEvent;
-            if (typeName.Contains("TriggerCustomEvent")) return UnitKind.TriggerCustomEvent;
-            if (typeName.Contains("Add") || typeName.Contains("Subtract") || typeName.Contains("Multiply")
-                || typeName.Contains("Divide") || typeName.Contains("Sum") || typeName.Contains("Lerp"))
+
+            if (name.Contains("Add") || name.Contains("Subtract") || name.Contains("Multiply")
+                || name.Contains("Divide") || name.Contains("Modulo") || name.Contains("Sum")
+                || name.Contains("Lerp") || name.Contains("MoveTowards") || name.Contains("Minimum")
+                || name.Contains("Maximum") || name.Contains("Absolute") || name.Contains("Normalize")
+                || name.Contains("Distance") || name.Contains("Angle") || name.Contains("DotProduct")
+                || name.Contains("CrossProduct") || name.Contains("Average") || name.Contains("Round")
+                || name.Contains("Root") || name.Contains("Exponentiate") || name.Contains("PerSecond")
+                || name.Contains("Project"))
                 return UnitKind.Math;
-            if (typeName.Contains("And") || typeName.Contains("Or") || typeName.Contains("Negate"))
+
+            if (name is "And" or "Or" or "Negate" or "ExclusiveOr")
                 return UnitKind.Logic;
-            if (typeName.Contains("Equal") || typeName.Contains("Greater") || typeName.Contains("Less"))
+            if (name is "Equal" or "NotEqual" or "Greater" or "GreaterOrEqual"
+                or "Less" or "LessOrEqual" or "Comparison" or "ApproximatelyEqual"
+                or "NotApproximatelyEqual")
                 return UnitKind.Comparison;
-            if (typeName.Contains("Null")) return UnitKind.Null;
-            if (typeName.Contains("Timer") || typeName.Contains("Cooldown") || typeName.Contains("Wait"))
+
+            if (name.Contains("Timer") || name.Contains("Cooldown") || name.Contains("Wait"))
                 return UnitKind.Time;
-            if (typeName.Contains("List") || typeName.Contains("Dictionary") || typeName.Contains("Count"))
+            if (name.Contains("List") || name.Contains("Dictionary") || name.Contains("Count")
+                || name.Contains("FirstItem") || name.Contains("LastItem"))
                 return UnitKind.Collection;
-            if (typeName.Contains("GraphInput") || typeName.Contains("GraphOutput") || typeName.Contains("Subgraph"))
+            if (name.Contains("GraphInput") || name.Contains("GraphOutput") || name.Contains("Subgraph"))
                 return UnitKind.Nesting;
-            if (typeName.Contains("CreateStruct")) return UnitKind.CreateStruct;
-            if (typeName.Contains("Expose")) return UnitKind.Expose;
+
+            // Event: 残りの既知のイベント名
+            if (name.Contains("Start") || name.Contains("Update") || name.Contains("FixedUpdate")
+                || name.Contains("LateUpdate") || name.Contains("OnEnable") || name.Contains("OnDisable")
+                || name.Contains("OnDestroy") || name.Contains("OnTrigger") || name.Contains("OnCollision")
+                || name.Contains("OnMouse") || name.Contains("OnApplication") || name.Contains("OnBecame")
+                || name.Contains("OnAnimator") || name.Contains("OnGUI") || name.Contains("OnTransform")
+                || name.Contains("OnInput") || name.Contains("OnButton") || name.Contains("OnKey"))
+                return UnitKind.Event;
+
             return UnitKind.Unknown;
         }
 
         static string NormalizeTypeName(string typeName)
         {
-            // Bolt.* → Unity.VisualScripting.*
             if (typeName.StartsWith("Bolt."))
                 return "Unity.VisualScripting." + typeName.Substring(5);
             if (typeName.StartsWith("Ludiq."))
                 return "Unity.VisualScripting." + typeName.Substring(6);
             return typeName;
-        }
-
-        static string ExtractString(string json, string key)
-        {
-            var match = Regex.Match(json, $@"""{Regex.Escape(key)}"":""([^""]+)""");
-            return match.Success ? match.Groups[1].Value : null;
-        }
-
-        static string ExtractRef(string json, string key)
-        {
-            var match = Regex.Match(json, $@"""{Regex.Escape(key)}"":\{{""\$ref"":""([^""]+)""\}}");
-            return match.Success ? match.Groups[1].Value : null;
         }
     }
 }

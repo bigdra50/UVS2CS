@@ -4,6 +4,7 @@ public class Obstacle_Behavior_ER : MonoBehaviour
 {
     private void FixedUpdate()
     {
+        null.velocity = null..ctor(speed, 0f);
     }
 
     private void OnTriggerEnter2D()

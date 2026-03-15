@@ -2,7 +2,18 @@ using UnityEngine;
 
 public class Player_Behavior_ER : MonoBehaviour
 {
+    private void OnKeyboardInput()
+    {
+        null.SetBool("", false);
+    }
+
     private void OnTriggerEnter2D()
     {
+    }
+
+    private void OnKeyboardInput_1()
+    {
+        null..ctor(null.velocity.x, jumpStrength);
+        null.velocity = null..ctor(null.velocity.x, jumpStrength);
     }
 }

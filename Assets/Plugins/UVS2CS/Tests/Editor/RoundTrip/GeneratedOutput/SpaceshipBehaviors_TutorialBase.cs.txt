@@ -4,13 +4,17 @@ public class SpaceshipBehaviors_TutorialBase : MonoBehaviour
 {
     private void FixedUpdate()
     {
-        if (Single)
+        if (data.thrustInput > 0.1f)
         {
+            spaceshipRigidbody.velocity = (null.forward * data.thrustAmount * null.Max(data.thrustInput, 0.4f));
         }
     }
 
     private void FixedUpdate_1()
     {
-        String.rotation = Single;
+        null..ctor(data.pitchSpeed * null.x, (null.z * -1f * data.yawSpeed), 0f);
+        spaceshipRigidbody.AddRelativeTorque(null..ctor(data.pitchSpeed * null.x, (null.z * -1f * data.yawSpeed), 0f));
+        null.Slerp(0f);
+        spaceshipRigidbody.rotation = null.Slerp(0f);
     }
 }
