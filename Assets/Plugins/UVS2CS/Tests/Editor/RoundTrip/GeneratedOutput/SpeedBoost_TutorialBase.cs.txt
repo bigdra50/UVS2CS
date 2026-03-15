@@ -5,23 +5,25 @@ public class SpeedBoost_TutorialBase : MonoBehaviour
     private bool boostActive = false;
     private float timer = 1f;
 
-    private void OnTriggerEnter()
-    {
-        boostActive = true;
-        timer = 1f;
-    }
-
     private void FixedUpdate()
     {
         if (boostActive)
         {
             if (timer > 0f)
             {
+                Player.AddForce(speedBoostMultiplier * Player.forward, Force);
+                ShipShader.SetColor("", RGBA(1.000, 1.000, 1.000, 1.000));
             }
             else
             {
                 boostActive = false;
             }
         }
+    }
+
+    private void OnTriggerEnter()
+    {
+        boostActive = true;
+        timer = 1f;
     }
 }

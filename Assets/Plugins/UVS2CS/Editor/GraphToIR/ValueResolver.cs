@@ -93,31 +93,22 @@ namespace UVS2CS.GraphToIR
                 return ResolveFromUnit(sourceUnit, sourcePort);
             }
 
-            // InvalidConnection コレクションからも探す（Define失敗した接続）
+            // InvalidConnection からリフレクション経由で接続元を探す（Define失敗した接続）
             foreach (var conn in _graph.invalidConnections)
             {
-                if (!conn.sourceExists || !conn.destinationExists) continue;
-                try
+                if (!ConnectionResolver.TryGetDestInfo(conn, out var destUnit, out var destKey))
+                    continue;
+                if (destUnit != unit || destKey != portKey)
+                    continue;
+                if (!ConnectionResolver.TryGetSourceInfo(conn, out var srcUnit, out var srcKey))
+                    continue;
+
+                var handler = _registry.GetHandler(srcUnit);
+                if (handler != null)
                 {
-                    var dest = conn.destination;
-                    if (dest.unit != unit || dest.key != portKey) continue;
-
-                    var src = conn.source;
-                    var srcUnit = src.unit;
-
-                    // 接続元が GetMember/GetVariable 等の場合、member フィールドから読む
-                    var handler = _registry.GetHandler(srcUnit);
-                    if (handler != null)
-                    {
-                        var srcValueOutput = srcUnit.valueOutputs.FirstOrDefault(p => p.key == src.key);
-                        if (srcValueOutput != null)
-                            return handler.HandleValue(srcUnit, srcValueOutput, this);
-
-                        // valueOutputs にもない場合、ポートキーだけで推定
-                        return handler.HandleValue(srcUnit, null, this);
-                    }
+                    var srcValueOutput = srcUnit.valueOutputs.FirstOrDefault(p => p.key == srcKey);
+                    return handler.HandleValue(srcUnit, srcValueOutput, this);
                 }
-                catch { /* source/destination access may throw */ }
             }
 
             return ResolveDefaultByKey(unit, portKey);

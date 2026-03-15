@@ -4,12 +4,22 @@ public class SpaceshipBehaviors_TutorialBase : MonoBehaviour
 {
     private void FixedUpdate()
     {
-        if (0f > 0.1f)
+        if (data.thrustInput > 0.1f)
         {
+            spaceshipRigidbody.velocity = (null.forward * data.thrustAmount * Mathf.Max(data.thrustInput, 0.4f));
         }
     }
 
     private void FixedUpdate()
     {
+        var _temp3 = data;
+        var _temp2 = null.localEulerAngles;
+        var _temp1 = spaceshipRigidbody;
+        var _temp0 = data;
+        Vector3..ctor(_temp0.pitchSpeed * _temp0.steeringInput.x, (_temp0.steeringInput.z * -1f * _temp0.yawSpeed), 0f);
+        _temp1.AddRelativeTorque(Vector3..ctor(_temp0.pitchSpeed * _temp0.steeringInput.x, (_temp0.steeringInput.z * -1f * _temp0.yawSpeed), 0f));
+        Quaternion.Slerp(_temp1.rotation, Quaternion.Euler(Vector3..ctor(_temp2.x, _temp2.y)), 0f);
+        spaceshipRigidbody.rotation = Quaternion.Slerp(_temp1.rotation, Quaternion.Euler(Vector3..ctor(_temp2.x, _temp2.y)), 0f);
+        shipTransformRoot.localEulerAngles = Vector3..ctor(_temp3.steeringInput.x * _temp3.leanAmount_Y, shipTransformRoot.localEulerAngles.y, _temp3.steeringInput.z * _temp3.leanAmount_X);
     }
 }

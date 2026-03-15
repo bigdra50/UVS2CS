@@ -6,25 +6,39 @@ public class SpaceshipBehaviors : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (0f > 0.1f)
+        if (data.thrustInput > 0.1f)
         {
+            spaceshipRigidbody.velocity = (null.forward * data.thrustAmount * Mathf.Max(data.thrustInput, 0.4f));
         }
     }
 
     private void CustomEvent()
     {
+        var _temp0 = null.boostEffect;
+        _temp0.main.startColor = argument_0;
+        _temp0.Play();
     }
 
     private void FixedUpdate()
     {
-    }
-
-    private void FixedUpdate()
-    {
-        if (false)
+        if (data.shootInput)
         {
             /* SubGraph: SubgraphUnit - inline expansion needed */;
             /* unhandled: PickRandomAudioClip */;
+            null.PlayOneShot(/* unhandled: PickRandomAudioClip */);
         }
+    }
+
+    private void FixedUpdate()
+    {
+        var _temp4 = data;
+        var _temp3 = null.localEulerAngles;
+        var _temp2 = spaceshipRigidbody;
+        var _temp1 = data;
+        Vector3..ctor(_temp1.pitchSpeed * _temp1.steeringInput.x, (_temp1.steeringInput.z * -1f * _temp1.yawSpeed), 0f);
+        _temp2.AddRelativeTorque(Vector3..ctor(_temp1.pitchSpeed * _temp1.steeringInput.x, (_temp1.steeringInput.z * -1f * _temp1.yawSpeed), 0f));
+        Quaternion.Slerp(_temp2.rotation, Quaternion.Euler(Vector3..ctor(_temp3.x, _temp3.y)), 0f);
+        spaceshipRigidbody.rotation = Quaternion.Slerp(_temp2.rotation, Quaternion.Euler(Vector3..ctor(_temp3.x, _temp3.y)), 0f);
+        shipTransformRoot.localEulerAngles = Vector3..ctor(_temp4.steeringInput.x * _temp4.leanAmount_Y, shipTransformRoot.localEulerAngles.y, _temp4.steeringInput.z * _temp4.leanAmount_X);
     }
 }
