@@ -1,4 +1,3 @@
-#if UVS2CS_HAS_ROSLYN
 using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -66,13 +65,13 @@ namespace UVS2CS.CSharpToIR
         {
             return fullName switch
             {
-                "System.Void" => "void",
-                "System.Int32" => "int",
-                "System.Single" => "float",
-                "System.Double" => "double",
-                "System.Boolean" => "bool",
-                "System.String" => "string",
-                "System.Object" => "object",
+                "void" or "System.Void" => "void",
+                "int" or "System.Int32" => "int",
+                "float" or "System.Single" => "float",
+                "double" or "System.Double" => "double",
+                "bool" or "System.Boolean" => "bool",
+                "string" or "System.String" => "string",
+                "object" or "System.Object" => "object",
                 "System.Byte" => "byte",
                 "System.Char" => "char",
                 "System.Int64" => "long",
@@ -82,4 +81,3 @@ namespace UVS2CS.CSharpToIR
         }
     }
 }
-#endif

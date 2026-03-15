@@ -1,4 +1,3 @@
-#if UVS2CS_HAS_ROSLYN
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -413,4 +412,3 @@ namespace UVS2CS.CSharpToIR
         }
     }
 }
-#endif

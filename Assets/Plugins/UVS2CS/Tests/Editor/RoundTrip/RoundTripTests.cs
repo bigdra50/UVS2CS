@@ -1,4 +1,3 @@
-#if UVS2CS_HAS_ROSLYN
 using System.Linq;
 using NUnit.Framework;
 using Unity.VisualScripting;
@@ -258,4 +257,3 @@ public class PlayerController : MonoBehaviour
         }
     }
 }
-#endif
