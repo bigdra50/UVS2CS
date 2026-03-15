@@ -24,7 +24,11 @@ namespace UVS2CS.GraphToIR.Serialized
 
             JObject root;
             try { root = JObject.Parse(json); }
-            catch { return snapshot; }
+            catch (System.Exception e)
+            {
+                UnityEngine.Debug.LogWarning($"[UVS2CS] JSON parse failed: {e.Message} (length={json?.Length})");
+                return snapshot;
+            }
 
             var graph = root["graph"] as JObject ?? root;
 
@@ -66,6 +70,8 @@ namespace UVS2CS.GraphToIR.Serialized
             // 2パス: 1パス目で Unit ($id 付き) を登録、2パス目で接続 ($ref 解決)
             foreach (var elem in elements)
             {
+                try
+                {
                 if (elem is not JObject obj) continue;
                 var typeName = obj["$type"]?.ToString();
                 if (typeName == null) continue;
@@ -85,9 +91,20 @@ namespace UVS2CS.GraphToIR.Serialized
                 if (typeName.Contains("GraphGroup") || typeName.Contains("StickyNote"))
                     continue;
 
-                var unit = ParseUnit(obj, typeName);
+                SerializedUnit unit;
+                try { unit = ParseUnit(obj, typeName); }
+                catch (System.Exception e)
+                {
+                    UnityEngine.Debug.LogWarning($"[UVS2CS] Failed to parse unit {typeName}: {e.Message}\n{e.StackTrace}");
+                    continue;
+                }
                 if (!string.IsNullOrEmpty(unit.Id))
                     snapshot.Units[unit.Id] = unit;
+                }
+                catch (System.Exception e)
+                {
+                    UnityEngine.Debug.LogWarning($"[UVS2CS] Element parse error: {e.Message}");
+                }
             }
         }
 
@@ -104,8 +121,8 @@ namespace UVS2CS.GraphToIR.Serialized
             var pos = obj["position"] as JObject;
             if (pos != null)
             {
-                unit.PositionX = pos["x"]?.Value<float>() ?? 0;
-                unit.PositionY = pos["y"]?.Value<float>() ?? 0;
+                unit.PositionX = (float)(pos["x"]?.Value<double>() ?? 0);
+                unit.PositionY = (float)(pos["y"]?.Value<double>() ?? 0);
             }
 
             // member
@@ -151,31 +168,34 @@ namespace UVS2CS.GraphToIR.Serialized
             var kindStr = obj["kind"]?.ToString();
             if (kindStr != null) unit.VariableKind = kindStr;
 
-            // specifyFallback
-            var specifyFallback = obj["specifyFallback"];
-            if (specifyFallback != null)
-                unit.DefaultValues["_specifyFallback"] = specifyFallback.Value<bool>();
+            // Safe property reads (some may be unexpected types)
+            try
+            {
+                var specifyFallback = obj["specifyFallback"];
+                if (specifyFallback != null)
+                    unit.DefaultValues["_specifyFallback"] = specifyFallback.Type == JTokenType.Boolean
+                        ? specifyFallback.Value<bool>() : bool.TryParse(specifyFallback.ToString(), out var b) && b;
 
-            // argumentCount
-            var argCount = obj["argumentCount"];
-            if (argCount != null) unit.ArgumentCount = argCount.Value<int>();
+                var argCount = obj["argumentCount"];
+                if (argCount != null && argCount.Type == JTokenType.Integer)
+                    unit.ArgumentCount = argCount.Value<int>();
 
-            // coroutine
-            var coroutine = obj["coroutine"];
-            if (coroutine != null) unit.Coroutine = coroutine.Value<bool>();
+                var coroutine = obj["coroutine"];
+                if (coroutine != null && coroutine.Type == JTokenType.Boolean)
+                    unit.Coroutine = coroutine.Value<bool>();
 
-            // chainable
-            var chainable = obj["chainable"];
-            if (chainable != null)
-                unit.DefaultValues["_chainable"] = chainable.Value<bool>();
+                var chainable = obj["chainable"];
+                if (chainable != null && chainable.Type == JTokenType.Boolean)
+                    unit.DefaultValues["_chainable"] = chainable.Value<bool>();
 
-            // branchCount (Sequence)
-            var branchCount = obj["branchCount"];
-            if (branchCount != null) unit.OutputCount = branchCount.Value<int>();
+                var branchCount = obj["branchCount"];
+                if (branchCount != null && branchCount.Type == JTokenType.Integer)
+                    unit.OutputCount = branchCount.Value<int>();
 
-            // options (Switch)
-            var options = obj["options"] as JArray;
-            if (options != null) unit.OutputCount = options.Count;
+                var options = obj["options"] as JArray;
+                if (options != null) unit.OutputCount = options.Count;
+            }
+            catch { /* ignore property read errors */ }
 
             // Literal: type and value
             var typeToken = obj["type"];
@@ -213,39 +233,43 @@ namespace UVS2CS.GraphToIR.Serialized
 
             if (content == null || content.Type == JTokenType.Null) return null;
 
-            return type switch
+            try
             {
-                "System.String" => content.ToString(),
-                "System.Int32" => content.Value<int>(),
-                "System.Single" => content.Value<float>(),
-                "System.Double" => content.Value<double>(),
-                "System.Boolean" => content.Value<bool>(),
-                "System.Int64" => content.Value<long>(),
-                "UnityEngine.ForceMode" => content.Value<int>(),
-                _ when type != null && type.StartsWith("UnityEngine.") =>
-                    content.Type == JTokenType.Integer ? content.Value<int>() : (object)content.ToString(),
-                _ => content.Type switch
+                return type switch
                 {
-                    JTokenType.Integer => content.Value<int>(),
-                    JTokenType.Float => content.Value<float>(),
-                    JTokenType.Boolean => content.Value<bool>(),
-                    JTokenType.String => content.ToString(),
-                    _ => content.ToString(),
-                },
-            };
+                    "System.String" => content.ToString(),
+                    "System.Int32" => content.Value<int>(),
+                    "System.Single" => content.Value<float>(),
+                    "System.Double" => content.Value<double>(),
+                    "System.Boolean" => content.Value<bool>(),
+                    "System.Int64" => content.Value<long>(),
+                    _ => content.Type switch
+                    {
+                        JTokenType.Integer => content.Value<int>(),
+                        JTokenType.Float => (object)content.Value<double>(),
+                        JTokenType.Boolean => content.Value<bool>(),
+                        _ => content.ToString(),
+                    },
+                };
+            }
+            catch { return content.ToString(); }
         }
 
         static object ExtractPrimitive(JToken token)
         {
-            return token.Type switch
+            try
             {
-                JTokenType.Integer => token.Value<int>(),
-                JTokenType.Float => token.Value<float>(),
-                JTokenType.Boolean => token.Value<bool>(),
-                JTokenType.String => token.ToString(),
-                JTokenType.Null => null,
-                _ => token.ToString(),
-            };
+                return token.Type switch
+                {
+                    JTokenType.Integer => token.Value<int>(),
+                    JTokenType.Float => (object)token.Value<double>(),
+                    JTokenType.Boolean => token.Value<bool>(),
+                    JTokenType.String => token.ToString(),
+                    JTokenType.Null => null,
+                    _ => token.ToString(),
+                };
+            }
+            catch { return token.ToString(); }
         }
 
         static UnitKind ClassifyUnit(string typeName)
@@ -268,7 +292,8 @@ namespace UVS2CS.GraphToIR.Serialized
             if (name == "Expose") return UnitKind.Expose;
             if (name == "Formula") return UnitKind.Formula;
 
-            if (name is "If" or "For" or "ForEach" or "While" or "Sequence" or "Break"
+            if (name is "If" or "Branch" // Branch = Bolt の If
+                or "For" or "ForEach" or "While" or "Sequence" or "Break"
                 or "SwitchOnInteger" or "SwitchOnString" or "SwitchOnEnum"
                 or "Once" or "Cache" or "ToggleFlow" or "ToggleValue"
                 or "TryCatch" or "Throw" or "SelectOnFlow")

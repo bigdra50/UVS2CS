@@ -40,7 +40,7 @@ namespace UVS2CS.UI
                 }
                 catch (System.Exception e)
                 {
-                    Debug.LogError($"[UVS2CS] Failed: {asset.name} - {e.Message}");
+                    Debug.LogException(e);
                     failCount++;
                 }
             }

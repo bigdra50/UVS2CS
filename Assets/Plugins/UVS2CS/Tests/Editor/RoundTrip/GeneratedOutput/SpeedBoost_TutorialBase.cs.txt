@@ -2,17 +2,27 @@ using UnityEngine;
 
 public class SpeedBoost_TutorialBase : MonoBehaviour
 {
-    private void OnTriggerEnter()
-    {
-    }
+    private bool boostActive = false;
+    private float timer = 1f;
 
     private void FixedUpdate()
     {
-        if (String)
+        if (boostActive)
         {
-            if (Single)
+            if (timer > 0f)
             {
+                Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
+                ShipShader.SetColor("", "{\n  \"r\": 1.0,\n  \"g\": 1.0,\n  \"b\": 1.0,\n  \"a\": 1.0,\n  \"$type\": \"UnityEngine.Color\"\n}");
+            }
+            else
+            {
+                boostActive = false;
             }
         }
+    }
+
+    private void OnTriggerEnter()
+    {
+        boostActive = true;
     }
 }

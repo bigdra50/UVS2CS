@@ -218,7 +218,7 @@ namespace UVS2CS.GraphToIR.Serialized
         {
             var shortName = unit.TypeName.Split('.').Last();
 
-            if (shortName == "If")
+            if (shortName is "If" or "Branch")
             {
                 var cond = ResolveValueInput(unit.Id, "condition");
                 return new IRIf
@@ -415,14 +415,78 @@ namespace UVS2CS.GraphToIR.Serialized
         {
             var name = unit.TypeName.Split('.').Last();
 
-            if (name.Contains("Add")) return MathBin(unit, BinaryOperator.Add);
-            if (name.Contains("Subtract")) return MathBin(unit, BinaryOperator.Subtract);
-            if (name.Contains("Multiply")) return MathBin(unit, BinaryOperator.Multiply);
-            if (name.Contains("Divide")) return MathBin(unit, BinaryOperator.Divide);
-            if (name.Contains("Modulo")) return MathBin(unit, BinaryOperator.Modulo);
-            if (name.Contains("Sum")) return MathBin(unit, BinaryOperator.Add);
+            // ポートキーは Unit ごとに異なる:
+            // Add: a/b/sum, Subtract: minuend/subtrahend/difference
+            // Multiply: a/b/product, Divide: dividend/divisor/quotient
+            if (name.Contains("Add")) return MathBinAuto(unit, BinaryOperator.Add, "a", "b");
+            if (name.Contains("Subtract")) return MathBinAuto(unit, BinaryOperator.Subtract, "minuend", "subtrahend");
+            if (name.Contains("Multiply")) return MathBinAuto(unit, BinaryOperator.Multiply, "a", "b");
+            if (name.Contains("Divide")) return MathBinAuto(unit, BinaryOperator.Divide, "dividend", "divisor");
+            if (name.Contains("Modulo")) return MathBinAuto(unit, BinaryOperator.Modulo, "dividend", "divisor");
+            if (name.Contains("Sum")) return MathBinAuto(unit, BinaryOperator.Add, "a", "b");
+            if (name.Contains("Minimum")) return MathfCallAuto("Min", unit);
+            if (name.Contains("Maximum")) return MathfCallAuto("Max", unit);
+            if (name.Contains("Lerp"))
+                return new IRMethodCall
+                {
+                    MethodName = "Lerp", IsStatic = true,
+                    DeclaringType = new IRTypeRef { ShortName = "Mathf", FullName = "UnityEngine.Mathf" },
+                    Arguments = { ResolveValueInput(unit.Id, "a"), ResolveValueInput(unit.Id, "b"), ResolveValueInput(unit.Id, "t") },
+                };
 
             return new IRIdentifier { Name = name };
+        }
+
+        IRMethodCall MathfCallAuto(string method, SerializedUnit unit) =>
+            new()
+            {
+                MethodName = method, IsStatic = true,
+                DeclaringType = new IRTypeRef { ShortName = "Mathf", FullName = "UnityEngine.Mathf" },
+                Arguments = { FindInput(unit, "a"), FindInput(unit, "b") },
+            };
+
+        /// <summary>
+        /// 値接続が存在するポートキーを優先して解決する。
+        /// ポートキー名が Unit ごとに異なるため、接続データから実際のキーを探す。
+        /// </summary>
+        IRExpression FindInput(SerializedUnit unit, params string[] candidateKeys)
+        {
+            // 接続データから実際に存在するキーを探す
+            foreach (var edge in _snapshot.ValueEdges)
+            {
+                if (edge.DestUnitId != unit.Id) continue;
+                foreach (var k in candidateKeys)
+                    if (edge.DestKey == k) return ResolveValueInput(unit.Id, k);
+                // candidateKeys に含まれないキーでも使う
+                return ResolveValueInput(unit.Id, edge.DestKey);
+            }
+            // 接続がなければ defaultValues から
+            foreach (var k in candidateKeys)
+            {
+                if (unit.DefaultValues.ContainsKey(k))
+                    return ResolveValueInput(unit.Id, k);
+            }
+            return new IRNull();
+        }
+
+        IRExpression MathBinAuto(SerializedUnit unit, BinaryOperator op, string leftKey, string rightKey)
+        {
+            // 接続データから実際のポートキーを探す
+            var leftKeys = new List<string> { leftKey, "a" };
+            var rightKeys = new List<string> { rightKey, "b" };
+
+            IRExpression left = null, right = null;
+            foreach (var edge in _snapshot.ValueEdges)
+            {
+                if (edge.DestUnitId != unit.Id) continue;
+                if (leftKeys.Contains(edge.DestKey)) left = ResolveValueInput(unit.Id, edge.DestKey);
+                else if (rightKeys.Contains(edge.DestKey)) right = ResolveValueInput(unit.Id, edge.DestKey);
+            }
+
+            left ??= ResolveValueInput(unit.Id, leftKey);
+            right ??= ResolveValueInput(unit.Id, rightKey);
+
+            return new IRBinaryOp { Left = left, Right = right, Operator = op };
         }
 
         IRExpression MathBin(SerializedUnit unit, BinaryOperator op)
@@ -472,7 +536,7 @@ namespace UVS2CS.GraphToIR.Serialized
 
             return name switch
             {
-                "If" or "Switch" or "SwitchOnInteger" or "SwitchOnString" or "SwitchOnEnum"
+                "If" or "Branch" or "Switch" or "SwitchOnInteger" or "SwitchOnString" or "SwitchOnEnum"
                     or "ToggleFlow" or "TryCatch" => null,
                 "For" or "ForEach" or "While" => "exit",
                 "Once" => "after",
