@@ -7,6 +7,12 @@ public class ProjectileBehavior : MonoBehaviour
         /* Timer: complex timer - requires manual conversion */;
     }
 
+    private void FixedUpdate()
+    {
+        CustomEvent.Trigger("MoveProjectile", null);
+        CustomEvent.Trigger("CollisionRaycastCheck", null);
+    }
+
     private void CustomEvent()
     {
     }
@@ -20,12 +26,6 @@ public class ProjectileBehavior : MonoBehaviour
                 CustomEvent.Trigger("RemoveProjectile", null);
             }
         }
-    }
-
-    private void FixedUpdate()
-    {
-        CustomEvent.Trigger("MoveProjectile", null);
-        CustomEvent.Trigger("CollisionRaycastCheck", null);
     }
 
     private void CustomEvent()

@@ -11,10 +11,6 @@ public class SpaceshipBehaviors : MonoBehaviour
         }
     }
 
-    private void CustomEvent()
-    {
-    }
-
     private void FixedUpdate()
     {
     }
@@ -26,5 +22,9 @@ public class SpaceshipBehaviors : MonoBehaviour
             /* SubGraph: SubgraphUnit - inline expansion needed */;
             /* unhandled: PickRandomAudioClip */;
         }
+    }
+
+    private void CustomEvent()
+    {
     }
 }

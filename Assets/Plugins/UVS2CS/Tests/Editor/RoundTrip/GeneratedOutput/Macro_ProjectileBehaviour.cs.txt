@@ -6,13 +6,8 @@ public class Macro_ProjectileBehaviour : MonoBehaviour
     {
     }
 
-    private void OnEnable()
+    private void CustomEvent()
     {
-    }
-
-    private void FixedUpdate()
-    {
-        CustomEvent.Trigger("MoveProjectile", null);
     }
 
     private void CustomEvent()
@@ -21,7 +16,12 @@ public class Macro_ProjectileBehaviour : MonoBehaviour
         CustomEvent.Trigger("RemoveProjectile", null);
     }
 
-    private void CustomEvent()
+    private void FixedUpdate()
+    {
+        CustomEvent.Trigger("MoveProjectile", null);
+    }
+
+    private void OnEnable()
     {
     }
 }

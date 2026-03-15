@@ -2,16 +2,16 @@ using UnityEngine;
 
 public class Player_Behavior_ER : MonoBehaviour
 {
+    private void OnKeyboardInput()
+    {
+    }
+
+    private void OnKeyboardInput()
+    {
+    }
+
     private void OnTriggerEnter2D()
     {
         /* SubGraph: SubgraphUnit - inline expansion needed */;
-    }
-
-    private void OnKeyboardInput()
-    {
-    }
-
-    private void OnKeyboardInput()
-    {
     }
 }
