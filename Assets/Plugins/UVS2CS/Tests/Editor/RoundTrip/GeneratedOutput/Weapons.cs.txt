@@ -4,7 +4,12 @@ public class Weapons : MonoBehaviour
 {
     private object currentBullet;
 
-    private void CustomEvent()
+    private void Start()
+    {
+        muzzleFlash.Stop();
+    }
+
+    private void OnFire()
     {
         var _temp2 = bulletSpawnPoint;
         var _temp1 = currentBullet;
@@ -21,10 +26,5 @@ public class Weapons : MonoBehaviour
                 _temp1.SetActive(false);
             }
         }
-    }
-
-    private void Start()
-    {
-        muzzleFlash.Stop();
     }
 }

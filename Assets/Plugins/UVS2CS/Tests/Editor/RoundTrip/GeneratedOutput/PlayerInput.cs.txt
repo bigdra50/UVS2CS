@@ -6,26 +6,6 @@ public class PlayerInput : MonoBehaviour
 
     private void OnInputSystemEventButton()
     {
-        CustomEvent.Trigger("ForcefieldOn", forcefieldVFX);
-    }
-
-    private void OnInputSystemEventButton()
-    {
-        null.Play(null);
-    }
-
-    private void OnInputSystemEventButton()
-    {
-        CustomEvent.Trigger("Fire", null);
-    }
-
-    private void OnInputSystemEventButton()
-    {
-        Application.Quit();
-    }
-
-    private void OnInputSystemEventButton()
-    {
         if (_isToggleOn)
         {
             null.SetBool("", false);
@@ -34,5 +14,25 @@ public class PlayerInput : MonoBehaviour
         {
             null.SetBool("", false);
         }
+    }
+
+    private void OnInputSystemEventButton_1()
+    {
+        CustomEvent.Trigger("Fire", null);
+    }
+
+    private void OnInputSystemEventButton_2()
+    {
+        null.Play(null);
+    }
+
+    private void OnInputSystemEventButton_3()
+    {
+        Application.Quit();
+    }
+
+    private void OnInputSystemEventButton_4()
+    {
+        CustomEvent.Trigger("ForcefieldOn", forcefieldVFX);
     }
 }

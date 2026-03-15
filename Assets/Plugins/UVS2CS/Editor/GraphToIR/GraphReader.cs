@@ -68,11 +68,18 @@ namespace UVS2CS.GraphToIR
             var tracer = new FlowTracer(_registry, resolver);
             tracer.SetGraph(graph);
 
+            var methodNameCounts = new Dictionary<string, int>();
+
             foreach (var unit in graph.units)
             {
                 if (!unit.isControlRoot) continue;
 
                 var methodName = EventHandlers.GetMethodName(unit);
+
+                // 同名メソッドの重複回避
+                methodNameCounts.TryGetValue(methodName, out var count);
+                methodNameCounts[methodName] = count + 1;
+                if (count > 0) methodName = $"{methodName}_{count}";
                 var triggerPort = EventHandlers.GetTriggerPort(unit);
                 if (triggerPort == null) continue;
 

@@ -10,7 +10,7 @@ public class SpaceshipBehaviors_TutorialBase : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
+    private void FixedUpdate_1()
     {
         var _temp3 = data;
         var _temp2 = null.localEulerAngles;

@@ -73,9 +73,19 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                 OnTransformParentChanged => "OnTransformParentChanged",
                 OnTransformChildrenChanged => "OnTransformChildrenChanged",
 
+                // CustomEvent: defaultValues["name"] からイベント名をメソッド名にする
+                CustomEvent ce => ExtractCustomEventName(ce),
+
                 // Fallback: use type name
                 _ => unit.GetType().Name,
             };
+        }
+
+        static string ExtractCustomEventName(CustomEvent ce)
+        {
+            if (ce.defaultValues.TryGetValue("name", out var name) && name is string s && !string.IsNullOrEmpty(s))
+                return "On" + s.Replace(" ", "");
+            return "OnCustomEvent";
         }
 
         public static ControlOutput GetTriggerPort(IUnit unit)

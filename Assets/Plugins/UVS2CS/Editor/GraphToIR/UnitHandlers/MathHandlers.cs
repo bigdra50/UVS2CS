@@ -10,12 +10,14 @@ namespace UVS2CS.GraphToIR.UnitHandlers
         public bool CanHandle(IUnit unit)
         {
             var typeName = unit.GetType().Name;
-            return IsBinaryMath(typeName) && HasPorts(unit, "a", "b")
-                || IsUnaryMath(typeName) && HasPorts(unit, "input")
+            // ポートが存在する場合はポートキーで判定、Define失敗時は型名のみで判定
+            var hasPorts = unit.valueInputs.Count > 0;
+            return IsBinaryMath(typeName) && (!hasPorts || HasPorts(unit, "a", "b"))
+                || IsUnaryMath(typeName) && (!hasPorts || HasPorts(unit, "input"))
                 || IsMultiInputMath(typeName)
-                || typeName.Contains("Lerp") && HasPorts(unit, "a", "b")
-                || typeName.Contains("MoveTowards") && HasPorts(unit, "current", "target")
-                || typeName.Contains("Exponentiate") && HasPorts(unit, "base", "exponent");
+                || typeName.Contains("Lerp")
+                || typeName.Contains("MoveTowards")
+                || typeName.Contains("Exponentiate");
         }
 
         public IRStatement HandleControlFlow(IUnit unit, FlowTracer tracer, ValueResolver resolver) => null;
@@ -24,7 +26,7 @@ namespace UVS2CS.GraphToIR.UnitHandlers
         {
             var typeName = unit.GetType().Name;
 
-            if (HasPorts(unit, "a", "b"))
+            if (IsBinaryMath(typeName))
             {
                 if (typeName.Contains("Add")) return MathBinary(unit, BinOp.Add, resolver);
                 if (typeName.Contains("Subtract")) return MathBinary(unit, BinOp.Subtract, resolver);
@@ -40,9 +42,9 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                 if (typeName.Contains("Project")) return StaticCall("Vector3", "Project", unit, resolver);
             }
 
-            if (HasPorts(unit, "input"))
+            if (IsUnaryMath(typeName))
             {
-                var input = resolver.Resolve(unit.valueInputs["input"]);
+                var input = resolver.ResolveByKey(unit, "input");
                 if (typeName.Contains("Absolute")) return MathfCall1("Abs", input);
                 if (typeName.Contains("Normalize")) return new IRMemberAccess { Target = input, MemberName = "normalized" };
                 if (typeName.Contains("Round")) return MathfCall1("Round", input);
@@ -56,11 +58,9 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                     };
             }
 
-            if (typeName.Contains("Lerp") && HasPorts(unit, "a", "b"))
+            if (typeName.Contains("Lerp"))
             {
-                var t = unit.valueInputs.Contains("t")
-                    ? resolver.Resolve(unit.valueInputs["t"])
-                    : new IRLiteral { Value = 0f, Type = IRTypeRef.Float };
+                var t = resolver.ResolveByKey(unit, "t");
                 return new IRMethodCall
                 {
                     MethodName = "Lerp",
@@ -70,28 +70,25 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                 };
             }
 
-            if (typeName.Contains("MoveTowards") && HasPorts(unit, "current", "target"))
+            if (typeName.Contains("MoveTowards"))
             {
-                var maxDelta = unit.valueInputs.Contains("maxDelta")
-                    ? resolver.Resolve(unit.valueInputs["maxDelta"])
-                    : new IRLiteral { Value = 1f, Type = IRTypeRef.Float };
                 return new IRMethodCall
                 {
                     MethodName = "MoveTowards",
                     DeclaringType = new IRTypeRef { FullName = "UnityEngine.Mathf", ShortName = "Mathf" },
                     IsStatic = true,
-                    Arguments = { resolver.Resolve(unit.valueInputs["current"]), resolver.Resolve(unit.valueInputs["target"]), maxDelta },
+                    Arguments = { resolver.ResolveByKey(unit, "current"), resolver.ResolveByKey(unit, "target"), resolver.ResolveByKey(unit, "maxDelta") },
                 };
             }
 
-            if (typeName.Contains("Exponentiate") && HasPorts(unit, "base", "exponent"))
+            if (typeName.Contains("Exponentiate"))
             {
                 return new IRMethodCall
                 {
                     MethodName = "Pow",
                     DeclaringType = new IRTypeRef { FullName = "UnityEngine.Mathf", ShortName = "Mathf" },
                     IsStatic = true,
-                    Arguments = { resolver.Resolve(unit.valueInputs["base"]), resolver.Resolve(unit.valueInputs["exponent"]) },
+                    Arguments = { resolver.ResolveByKey(unit, "base"), resolver.ResolveByKey(unit, "exponent") },
                 };
             }
 
@@ -130,15 +127,15 @@ namespace UVS2CS.GraphToIR.UnitHandlers
             keys.All(k => unit.valueInputs.Any(p => p.key == k));
 
         static IRBinaryOp MathBinary(IUnit unit, BinOp op, ValueResolver resolver) =>
-            new() { Left = resolver.Resolve(unit.valueInputs["a"]), Right = resolver.Resolve(unit.valueInputs["b"]), Operator = op };
+            new() { Left = resolver.ResolveByKey(unit, "a"), Right = resolver.ResolveByKey(unit, "b"), Operator = op };
 
         static IRMethodCall MathfCall(string method, IUnit unit, ValueResolver resolver) =>
-            new() { MethodName = method, DeclaringType = new IRTypeRef { FullName = "UnityEngine.Mathf", ShortName = "Mathf" }, IsStatic = true, Arguments = { resolver.Resolve(unit.valueInputs["a"]), resolver.Resolve(unit.valueInputs["b"]) } };
+            new() { MethodName = method, DeclaringType = new IRTypeRef { FullName = "UnityEngine.Mathf", ShortName = "Mathf" }, IsStatic = true, Arguments = { resolver.ResolveByKey(unit, "a"), resolver.ResolveByKey(unit, "b") } };
 
         static IRMethodCall MathfCall1(string method, IRExpression input) =>
             new() { MethodName = method, DeclaringType = new IRTypeRef { FullName = "UnityEngine.Mathf", ShortName = "Mathf" }, IsStatic = true, Arguments = { input } };
 
         static IRMethodCall StaticCall(string typeName, string method, IUnit unit, ValueResolver resolver) =>
-            new() { MethodName = method, DeclaringType = new IRTypeRef { ShortName = typeName, FullName = $"UnityEngine.{typeName}" }, IsStatic = true, Arguments = { resolver.Resolve(unit.valueInputs["a"]), resolver.Resolve(unit.valueInputs["b"]) } };
+            new() { MethodName = method, DeclaringType = new IRTypeRef { ShortName = typeName, FullName = $"UnityEngine.{typeName}" }, IsStatic = true, Arguments = { resolver.ResolveByKey(unit, "a"), resolver.ResolveByKey(unit, "b") } };
     }
 }

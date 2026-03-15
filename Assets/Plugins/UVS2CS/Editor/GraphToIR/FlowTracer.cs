@@ -97,6 +97,7 @@ namespace UVS2CS.GraphToIR
         /// </summary>
         ControlOutput FindContinuationFromGraph(IUnit unit, string entryKey, string exitKey)
         {
+            // 正常な controlConnections から探す
             foreach (var conn in _graph.controlConnections)
             {
                 if (!conn.sourceExists) continue;
@@ -105,12 +106,24 @@ namespace UVS2CS.GraphToIR
                     return conn.source;
             }
 
-            // exit がなければ最初の出力を返す
             foreach (var conn in _graph.controlConnections)
             {
                 if (!conn.sourceExists) continue;
                 if (conn.source.unit != unit) continue;
                 return conn.source;
+            }
+
+            // invalidConnections からリフレクションで探す
+            foreach (var conn in _graph.invalidConnections)
+            {
+                if (!ConnectionResolver.TryGetSourceInfo(conn, out var srcUnit, out var srcKey))
+                    continue;
+                if (srcUnit != unit) continue;
+                if (srcKey == exitKey)
+                {
+                    var port = unit.controlOutputs.FirstOrDefault(p => p.key == exitKey);
+                    return port;
+                }
             }
 
             return null;

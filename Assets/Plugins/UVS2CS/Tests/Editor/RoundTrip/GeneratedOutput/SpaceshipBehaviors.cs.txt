@@ -12,14 +12,27 @@ public class SpaceshipBehaviors : MonoBehaviour
         }
     }
 
-    private void CustomEvent()
+    private void FixedUpdate_1()
     {
-        var _temp0 = null.boostEffect;
-        _temp0.main.startColor = argument_0;
-        _temp0.Play();
+        var _temp3 = data;
+        var _temp2 = null.localEulerAngles;
+        var _temp1 = spaceshipRigidbody;
+        var _temp0 = data;
+        Vector3..ctor(_temp0.pitchSpeed * _temp0.steeringInput.x, (_temp0.steeringInput.z * -1f * _temp0.yawSpeed), 0f);
+        _temp1.AddRelativeTorque(Vector3..ctor(_temp0.pitchSpeed * _temp0.steeringInput.x, (_temp0.steeringInput.z * -1f * _temp0.yawSpeed), 0f));
+        Quaternion.Slerp(_temp1.rotation, Quaternion.Euler(Vector3..ctor(_temp2.x, _temp2.y)), 0f);
+        spaceshipRigidbody.rotation = Quaternion.Slerp(_temp1.rotation, Quaternion.Euler(Vector3..ctor(_temp2.x, _temp2.y)), 0f);
+        shipTransformRoot.localEulerAngles = Vector3..ctor(_temp3.steeringInput.x * _temp3.leanAmount_Y, shipTransformRoot.localEulerAngles.y, _temp3.steeringInput.z * _temp3.leanAmount_X);
     }
 
-    private void FixedUpdate()
+    private void OnboostVisual()
+    {
+        var _temp4 = null.boostEffect;
+        _temp4.main.startColor = argument_0;
+        _temp4.Play();
+    }
+
+    private void FixedUpdate_2()
     {
         if (data.shootInput)
         {
@@ -27,18 +40,5 @@ public class SpaceshipBehaviors : MonoBehaviour
             /* unhandled: PickRandomAudioClip */;
             null.PlayOneShot(/* unhandled: PickRandomAudioClip */);
         }
-    }
-
-    private void FixedUpdate()
-    {
-        var _temp4 = data;
-        var _temp3 = null.localEulerAngles;
-        var _temp2 = spaceshipRigidbody;
-        var _temp1 = data;
-        Vector3..ctor(_temp1.pitchSpeed * _temp1.steeringInput.x, (_temp1.steeringInput.z * -1f * _temp1.yawSpeed), 0f);
-        _temp2.AddRelativeTorque(Vector3..ctor(_temp1.pitchSpeed * _temp1.steeringInput.x, (_temp1.steeringInput.z * -1f * _temp1.yawSpeed), 0f));
-        Quaternion.Slerp(_temp2.rotation, Quaternion.Euler(Vector3..ctor(_temp3.x, _temp3.y)), 0f);
-        spaceshipRigidbody.rotation = Quaternion.Slerp(_temp2.rotation, Quaternion.Euler(Vector3..ctor(_temp3.x, _temp3.y)), 0f);
-        shipTransformRoot.localEulerAngles = Vector3..ctor(_temp4.steeringInput.x * _temp4.leanAmount_Y, shipTransformRoot.localEulerAngles.y, _temp4.steeringInput.z * _temp4.leanAmount_X);
     }
 }

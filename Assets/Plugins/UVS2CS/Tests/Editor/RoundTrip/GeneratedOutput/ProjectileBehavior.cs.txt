@@ -7,13 +7,7 @@ public class ProjectileBehavior : MonoBehaviour
         /* Timer: complex timer - requires manual conversion */;
     }
 
-    private void FixedUpdate()
-    {
-        CustomEvent.Trigger("MoveProjectile", null);
-        CustomEvent.Trigger("CollisionRaycastCheck", null);
-    }
-
-    private void CustomEvent()
+    private void OnCollisionRaycastCheck()
     {
         var _temp0 = new RaycastHit().distance;
         if (Physics.Raycast(null.position, null.forward, _temp0, 100))
@@ -25,12 +19,18 @@ public class ProjectileBehavior : MonoBehaviour
         }
     }
 
-    private void CustomEvent()
+    private void FixedUpdate()
+    {
+        CustomEvent.Trigger("MoveProjectile", null);
+        CustomEvent.Trigger("CollisionRaycastCheck", null);
+    }
+
+    private void OnMoveProjectile()
     {
         null.MovePosition((null.position + (null.forward * null.movementSpeed * /* unsupported expression */.deltaTime)));
     }
 
-    private void CustomEvent()
+    private void OnRemoveProjectile()
     {
         null.SetActive(false);
     }
