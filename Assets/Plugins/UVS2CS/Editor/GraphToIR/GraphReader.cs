@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using UVS2CS.GraphToIR.Serialized;
 using UVS2CS.GraphToIR.UnitHandlers;
 using UVS2CS.IR;
 
@@ -16,15 +17,27 @@ namespace UVS2CS.GraphToIR
             _registry = registry;
         }
 
+        /// <summary>
+        /// ScriptGraphAsset から IRGraph を構築する。
+        /// JSON ベースの SerializedGraphParser を使い、Define() 失敗の影響を回避する。
+        /// </summary>
         public IRGraph Read(ScriptGraphAsset asset)
         {
+            // JSON ベース読み取り（Define失敗に影響されない）
+            var snapshot = SerializedGraphParser.Parse(asset);
+            if (snapshot.Units.Count > 0)
+            {
+                var jsonReader = new JsonGraphReader(snapshot);
+                return jsonReader.Read(asset.name);
+            }
+
+            // フォールバック: Unity API ベース
             return Read(asset.graph, asset.name);
         }
 
         public IRGraph Read(ScriptGraphAsset asset, string assetPath)
         {
-            var jsonReader = AssetJsonReader.FromAssetPath(assetPath);
-            return Read(asset.graph, asset.name, jsonReader);
+            return Read(asset);
         }
 
         public IRGraph Read(FlowGraph graph, string className, AssetJsonReader jsonFallback)

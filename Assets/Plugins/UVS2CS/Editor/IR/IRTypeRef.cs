@@ -22,6 +22,24 @@ namespace UVS2CS.IR
         public static IRTypeRef GameObject => new() { FullName = "UnityEngine.GameObject", ShortName = "GameObject", Namespace = "UnityEngine" };
         public static IRTypeRef Vector3 => new() { FullName = "UnityEngine.Vector3", ShortName = "Vector3", Namespace = "UnityEngine" };
 
+        public static IRTypeRef FromName(string fullName)
+        {
+            if (string.IsNullOrEmpty(fullName)) return Object;
+
+            var parts = fullName.Split('.');
+            var shortName = parts[parts.Length - 1];
+            var ns = parts.Length > 1
+                ? string.Join(".", parts, 0, parts.Length - 1)
+                : null;
+
+            return new IRTypeRef
+            {
+                FullName = fullName,
+                ShortName = shortName,
+                Namespace = ns,
+            };
+        }
+
         public static IRTypeRef FromType(Type type)
         {
             if (type == null) return Object;

@@ -4,12 +4,9 @@ public class Obstacle_Behavior_ER : MonoBehaviour
 {
     private void FixedUpdate()
     {
-        null.velocity = Vector2..ctor(speed, 0f);
     }
 
     private void OnTriggerEnter2D()
     {
-        /* SubGraph: SubgraphUnit - inline expansion needed */;
-        null.position = Vector3..ctor(0f, Random.Range(minHeight, maxHeight), 0f);
     }
 }

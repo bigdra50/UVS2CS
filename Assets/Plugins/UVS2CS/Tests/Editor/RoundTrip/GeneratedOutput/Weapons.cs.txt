@@ -2,29 +2,8 @@ using UnityEngine;
 
 public class Weapons : MonoBehaviour
 {
-    private object currentBullet;
-
     private void Start()
     {
-        muzzleFlash.Stop();
-    }
-
-    private void OnFire()
-    {
-        var _temp2 = bulletSpawnPoint;
-        var _temp1 = currentBullet;
-        var _temp0 = null.GetPooledObject();
-        if (terraformerAnimator.GetBool(""))
-        {
-            muzzleVFX.Play();
-            null.GetPooledObject();
-            if (_temp0 != null)
-            {
-                null.SetTrigger("");
-                currentBullet = _temp0;
-                _temp1.SetPositionAndRotation(_temp2.position, _temp2.rotation);
-                _temp1.SetActive(false);
-            }
-        }
+        String.Stop();
     }
 }

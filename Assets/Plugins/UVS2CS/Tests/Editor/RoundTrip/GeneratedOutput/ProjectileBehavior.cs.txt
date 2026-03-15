@@ -4,34 +4,9 @@ public class ProjectileBehavior : MonoBehaviour
 {
     private void OnEnable()
     {
-        /* Timer: complex timer - requires manual conversion */;
     }
 
     private void FixedUpdate()
     {
-        CustomEvent.Trigger("MoveProjectile", null);
-        CustomEvent.Trigger("CollisionRaycastCheck", null);
-    }
-
-    private void OnCollisionRaycastCheck()
-    {
-        var _temp0 = new RaycastHit().distance;
-        if (Physics.Raycast(null.position, null.forward, _temp0, 100))
-        {
-            if (_temp0 <= null.collisionRayDistance)
-            {
-                CustomEvent.Trigger("RemoveProjectile", null);
-            }
-        }
-    }
-
-    private void OnRemoveProjectile()
-    {
-        null.SetActive(false);
-    }
-
-    private void OnMoveProjectile()
-    {
-        null.MovePosition((null.position + (null.forward * null.movementSpeed * /* unsupported expression */.deltaTime)));
     }
 }

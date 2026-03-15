@@ -2,22 +2,7 @@ using UnityEngine;
 
 public class Player_Behavior_ER : MonoBehaviour
 {
-    private void OnKeyboardInput()
-    {
-        null.SetBool("", false);
-    }
-
     private void OnTriggerEnter2D()
     {
-        /* SubGraph: SubgraphUnit - inline expansion needed */;
-        null.SetTrigger("");
-        GameObject.Destroy(gameObject, 0f);
-    }
-
-    private void OnKeyboardInput_1()
-    {
-        Vector2..ctor(null.velocity.x, jumpStrength);
-        null.velocity = Vector2..ctor(null.velocity.x, jumpStrength);
-        null.SetBool("", false);
     }
 }
