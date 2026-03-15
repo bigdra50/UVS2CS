@@ -29,7 +29,7 @@ namespace UVS2CS.UI
 
                 try
                 {
-                    var ir = reader.Read(asset);
+                    var ir = reader.Read(asset, path);
                     var code = CSharpEmitter.Emit(ir);
 
                     var outputPath = Path.Combine(outputDir, $"{ir.ClassName}.cs.txt");

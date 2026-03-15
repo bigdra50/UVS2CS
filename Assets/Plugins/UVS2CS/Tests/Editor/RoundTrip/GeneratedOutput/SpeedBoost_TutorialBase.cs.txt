@@ -5,12 +5,6 @@ public class SpeedBoost_TutorialBase : MonoBehaviour
     private bool boostActive = false;
     private float timer = 1f;
 
-    private void OnTriggerEnter()
-    {
-        boostActive = true;
-        timer = 1f;
-    }
-
     private void FixedUpdate()
     {
         if (boostActive)
@@ -25,5 +19,11 @@ public class SpeedBoost_TutorialBase : MonoBehaviour
                 boostActive = false;
             }
         }
+    }
+
+    private void OnTriggerEnter()
+    {
+        boostActive = true;
+        timer = 1f;
     }
 }

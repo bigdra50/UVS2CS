@@ -17,14 +17,14 @@ public class Macro_ProjectileBehaviour : MonoBehaviour
         CustomEvent.Trigger("MoveProjectile", null);
     }
 
-    private void OnMoveProjectile()
-    {
-        null.MovePosition((null.position + (null.forward * ProjectileData.movementSpeed * /* unsupported expression */.deltaTime)));
-    }
-
     private void OnTimerToAutoRemoveProjectile()
     {
         yield return new WaitForSeconds(0f);
         CustomEvent.Trigger("RemoveProjectile", null);
+    }
+
+    private void OnMoveProjectile()
+    {
+        null.MovePosition((null.position + (null.forward * ProjectileData.movementSpeed * /* unsupported expression */.deltaTime)));
     }
 }

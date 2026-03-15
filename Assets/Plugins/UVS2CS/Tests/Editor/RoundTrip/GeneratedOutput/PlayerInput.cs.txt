@@ -28,11 +28,11 @@ public class PlayerInput : MonoBehaviour
 
     private void OnInputSystemEventButton_3()
     {
-        Application.Quit();
+        CustomEvent.Trigger("ForcefieldOn", forcefieldVFX);
     }
 
     private void OnInputSystemEventButton_4()
     {
-        CustomEvent.Trigger("ForcefieldOn", forcefieldVFX);
+        Application.Quit();
     }
 }

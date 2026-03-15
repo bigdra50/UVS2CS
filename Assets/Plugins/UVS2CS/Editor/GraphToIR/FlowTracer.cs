@@ -22,6 +22,12 @@ namespace UVS2CS.GraphToIR
         public IRBlock TraceFrom(ControlOutput startPort)
         {
             var block = new IRBlock();
+            TraceChain(startPort, block);
+            return block;
+        }
+
+        void TraceChain(ControlOutput startPort, IRBlock block)
+        {
             var currentPort = startPort;
 
             while (currentPort != null && currentPort.hasValidConnection)
@@ -32,32 +38,69 @@ namespace UVS2CS.GraphToIR
                 var destInput = conn.destination;
                 var unit = destInput.unit;
 
-                var handler = _registry.GetHandler(unit);
-                if (handler == null)
-                {
-                    block.Statements.Add(new IRExpressionStatement
-                    {
-                        Expression = new IRIdentifier { Name = $"/* unhandled: {unit.GetType().Name} */" },
-                    });
-                    currentPort = GetContinuationPort(unit, destInput);
-                    continue;
-                }
-
-                var stmt = handler.HandleControlFlow(unit, this, _resolver);
-                if (stmt != null)
-                    block.Statements.Add(stmt);
+                ProcessUnit(unit, destInput, block);
 
                 currentPort = GetContinuationPort(unit, destInput);
             }
 
-            return block;
+            // currentPort が null になった場合（Define失敗で継続ポートが取れない）
+            // invalidConnections から次の Unit を探して続行
+            if (currentPort == null && block.Statements.Count > 0 && _graph != null)
+                TryContinueViaInvalidConnections(block);
+        }
+
+        /// <summary>
+        /// Unit を処理して IR ステートメントを生成する。
+        /// Define() 失敗した Unit も ConnectionResolver 経由で処理する。
+        /// </summary>
+        void ProcessUnit(IUnit unit, ControlInput entryPort, IRBlock block)
+        {
+            var handler = _registry.GetHandler(unit);
+            if (handler == null)
+            {
+                block.Statements.Add(new IRExpressionStatement
+                {
+                    Expression = new IRIdentifier { Name = $"/* unhandled: {unit.GetType().Name} */" },
+                });
+                return;
+            }
+
+            var stmt = handler.HandleControlFlow(unit, this, _resolver);
+            if (stmt != null)
+                block.Statements.Add(stmt);
+        }
+
+        /// <summary>
+        /// invalidConnections を走査し、最後に処理した Unit からの制御フロー継続を探す。
+        /// </summary>
+        void TryContinueViaInvalidConnections(IRBlock block)
+        {
+            // invalidConnections から、処理済み Unit の exit ポートから次の Unit への接続を探す
+            foreach (var conn in _graph.invalidConnections)
+            {
+                if (!ConnectionResolver.TryGetSourceInfo(conn, out var srcUnit, out var srcKey))
+                    continue;
+                if (!ConnectionResolver.TryGetDestInfo(conn, out var destUnit, out var destKey))
+                    continue;
+
+                // exit / assigned ポートからの接続のみ
+                if (srcKey != "exit" && srcKey != "assigned") continue;
+
+                var handler = _registry.GetHandler(destUnit);
+                if (handler != null)
+                {
+                    var stmt = handler.HandleControlFlow(destUnit, this, _resolver);
+                    if (stmt != null)
+                        block.Statements.Add(stmt);
+                }
+            }
         }
 
         ControlOutput GetContinuationPort(IUnit unit, ControlInput entryPort)
         {
-            // Define() 失敗で controlOutputs が空の場合、グラフの接続コレクションから探す
-            if (unit.controlOutputs.Count == 0 && _graph != null)
-                return FindContinuationFromGraph(unit, entryPort?.key ?? "enter", "exit");
+            // Define() 失敗で controlOutputs が空
+            if (unit.controlOutputs.Count == 0)
+                return null; // TryContinueViaInvalidConnections で後続処理
 
             switch (unit)
             {
@@ -90,43 +133,6 @@ namespace UVS2CS.GraphToIR
                         ?? unit.controlOutputs.FirstOrDefault(p => p.key == "assigned")
                         ?? unit.controlOutputs.FirstOrDefault();
             }
-        }
-
-        /// <summary>
-        /// Define() 失敗した Unit の制御フロー継続を、グラフの接続コレクションから直接探す。
-        /// </summary>
-        ControlOutput FindContinuationFromGraph(IUnit unit, string entryKey, string exitKey)
-        {
-            // 正常な controlConnections から探す
-            foreach (var conn in _graph.controlConnections)
-            {
-                if (!conn.sourceExists) continue;
-                if (conn.source.unit != unit) continue;
-                if (conn.source.key == exitKey)
-                    return conn.source;
-            }
-
-            foreach (var conn in _graph.controlConnections)
-            {
-                if (!conn.sourceExists) continue;
-                if (conn.source.unit != unit) continue;
-                return conn.source;
-            }
-
-            // invalidConnections からリフレクションで探す
-            foreach (var conn in _graph.invalidConnections)
-            {
-                if (!ConnectionResolver.TryGetSourceInfo(conn, out var srcUnit, out var srcKey))
-                    continue;
-                if (srcUnit != unit) continue;
-                if (srcKey == exitKey)
-                {
-                    var port = unit.controlOutputs.FirstOrDefault(p => p.key == exitKey);
-                    return port;
-                }
-            }
-
-            return null;
         }
     }
 }

@@ -21,6 +21,26 @@ namespace UVS2CS.GraphToIR
             return Read(asset.graph, asset.name);
         }
 
+        public IRGraph Read(ScriptGraphAsset asset, string assetPath)
+        {
+            var jsonReader = AssetJsonReader.FromAssetPath(assetPath);
+            return Read(asset.graph, asset.name, jsonReader);
+        }
+
+        public IRGraph Read(FlowGraph graph, string className, AssetJsonReader jsonFallback)
+        {
+            var irGraph = new IRGraph
+            {
+                ClassName = SanitizeClassName(className),
+            };
+            irGraph.Usings.Add(new IRUsing { Namespace = "UnityEngine" });
+
+            ReadVariables(graph, irGraph);
+            ReadEventMethods(graph, irGraph, jsonFallback);
+
+            return irGraph;
+        }
+
         public IRGraph Read(FlowGraph graph, string className)
         {
             var irGraph = new IRGraph
@@ -60,10 +80,11 @@ namespace UVS2CS.GraphToIR
             }
         }
 
-        void ReadEventMethods(FlowGraph graph, IRGraph irGraph)
+        void ReadEventMethods(FlowGraph graph, IRGraph irGraph, AssetJsonReader jsonFallback = null)
         {
             var resolver = new ValueResolver(_registry);
             resolver.AnalyzeFanOut(graph);
+            if (jsonFallback != null) resolver.SetJsonFallback(jsonFallback);
 
             var tracer = new FlowTracer(_registry, resolver);
             tracer.SetGraph(graph);

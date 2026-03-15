@@ -14,8 +14,15 @@ namespace UVS2CS.GraphToIR
         int _tempVarCounter;
 
         FlowGraph _graph;
+        AssetJsonReader _jsonFallback;
+        Dictionary<string, IUnit> _unitByGuid;
 
         public List<IRStatement> PreambleStatements { get; } = new();
+
+        public void SetJsonFallback(AssetJsonReader json)
+        {
+            _jsonFallback = json;
+        }
 
         public ValueResolver(UnitHandlerRegistry registry)
         {
@@ -106,8 +113,24 @@ namespace UVS2CS.GraphToIR
                 var handler = _registry.GetHandler(srcUnit);
                 if (handler != null)
                 {
+                    // ポートが存在する場合はポートオブジェクトを渡す
+                    // Define() 失敗でポートが空の場合は null を渡す（handler 側で対応）
                     var srcValueOutput = srcUnit.valueOutputs.FirstOrDefault(p => p.key == srcKey);
                     return handler.HandleValue(srcUnit, srcValueOutput, this);
+                }
+
+                // handler がない場合でも、srcUnit が MemberUnit なら member フィールドから読む
+                if (srcUnit is Unity.VisualScripting.MemberUnit memberUnit && memberUnit.member != null)
+                {
+                    if (srcKey == "value" || srcKey == "result")
+                    {
+                        var target = ResolveByKey(srcUnit, "target");
+                        return new IRMemberAccess
+                        {
+                            Target = target ?? new IRThis(),
+                            MemberName = memberUnit.member.name,
+                        };
+                    }
                 }
             }
 
