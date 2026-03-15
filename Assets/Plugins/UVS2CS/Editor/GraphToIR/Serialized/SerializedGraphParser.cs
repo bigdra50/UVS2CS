@@ -134,6 +134,7 @@ namespace UVS2CS.GraphToIR.Serialized
                     Name = memberObj["name"]?.ToString(),
                     TargetTypeName = memberObj["targetTypeName"]?.ToString()
                         ?? memberObj["targetType"]?.ToString(),
+                    RequiresTarget = true, // defaultValues 解析後に再判定
                 };
 
                 var paramTypes = memberObj["parameterTypes"] as JArray;
@@ -157,12 +158,23 @@ namespace UVS2CS.GraphToIR.Serialized
                         continue;
                     }
 
-                    if (val is JObject valObj && valObj["$content"] != null)
-                        unit.DefaultValues[kv.Key] = ExtractContent(valObj);
+                    if (val is JObject valObj)
+                    {
+                        if (valObj["$content"] != null)
+                            unit.DefaultValues[kv.Key] = ExtractContent(valObj);
+                        else if (valObj["$type"] != null)
+                            unit.DefaultValues[kv.Key] = ExtractStructValue(valObj);
+                        else
+                            unit.DefaultValues[kv.Key] = ExtractPrimitive(val);
+                    }
                     else
                         unit.DefaultValues[kv.Key] = ExtractPrimitive(val);
                 }
             }
+
+            // RequiresTarget: defaultValues に "target" キーがなければ static メンバー
+            if (unit.Member != null && defaults != null && !defaults.ContainsKey("target"))
+                unit.Member.RequiresTarget = false;
 
             // kind (VariableKind)
             var kindStr = obj["kind"]?.ToString();
@@ -206,8 +218,15 @@ namespace UVS2CS.GraphToIR.Serialized
             var valueToken = obj["value"];
             if (valueToken != null)
             {
-                if (valueToken is JObject valueObj && valueObj["$content"] != null)
-                    unit.LiteralValue = ExtractContent(valueObj);
+                if (valueToken is JObject valueObj)
+                {
+                    if (valueObj["$content"] != null)
+                        unit.LiteralValue = ExtractContent(valueObj);
+                    else if (valueObj["$type"] != null)
+                        unit.LiteralValue = ExtractStructValue(valueObj);
+                    else
+                        unit.LiteralValue = ExtractPrimitive(valueToken);
+                }
                 else
                     unit.LiteralValue = ExtractPrimitive(valueToken);
             }
@@ -238,14 +257,14 @@ namespace UVS2CS.GraphToIR.Serialized
                 return type switch
                 {
                     "System.String" => content.ToString(),
-                    "System.Int32" => content.Value<int>(),
-                    "System.Single" => content.Value<float>(),
+                    "System.Int32" => (int)content.Value<long>(),
+                    "System.Single" => (float)content.Value<double>(),
                     "System.Double" => content.Value<double>(),
                     "System.Boolean" => content.Value<bool>(),
                     "System.Int64" => content.Value<long>(),
                     _ => content.Type switch
                     {
-                        JTokenType.Integer => content.Value<int>(),
+                        JTokenType.Integer => content.Value<long>(),
                         JTokenType.Float => (object)content.Value<double>(),
                         JTokenType.Boolean => content.Value<bool>(),
                         _ => content.ToString(),
@@ -255,13 +274,24 @@ namespace UVS2CS.GraphToIR.Serialized
             catch { return content.ToString(); }
         }
 
+        static StructValue ExtractStructValue(JObject obj)
+        {
+            var sv = new StructValue { TypeName = obj["$type"]?.ToString() };
+            foreach (var kv in obj)
+            {
+                if (kv.Key.StartsWith("$")) continue;
+                sv.Fields[kv.Key] = ExtractPrimitive(kv.Value);
+            }
+            return sv;
+        }
+
         static object ExtractPrimitive(JToken token)
         {
             try
             {
                 return token.Type switch
                 {
-                    JTokenType.Integer => token.Value<int>(),
+                    JTokenType.Integer => token.Value<long>(),
                     JTokenType.Float => (object)token.Value<double>(),
                     JTokenType.Boolean => token.Value<bool>(),
                     JTokenType.String => token.ToString(),

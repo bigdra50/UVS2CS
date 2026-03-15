@@ -330,9 +330,13 @@ namespace UVS2CS.GraphToIR.Serialized
                 if (unit.DefaultValues.TryGetValue(portKey, out var val))
                 {
                     if (val == null) return new IRNull();
+                    if (val is StructValue sv) return ConvertStructValue(sv);
                     if (val is string s) return new IRLiteral { Value = s, Type = IRTypeRef.String };
                     if (val is bool b) return new IRLiteral { Value = b, Type = IRTypeRef.Bool };
                     if (val is float f) return new IRLiteral { Value = f, Type = IRTypeRef.Float };
+                    if (val is double d) return new IRLiteral { Value = (float)d, Type = IRTypeRef.Float };
+                    if (val is int i) return new IRLiteral { Value = i, Type = IRTypeRef.Int };
+                    if (val is long l) return new IRLiteral { Value = (int)l, Type = IRTypeRef.Int };
                     return new IRLiteral { Value = val, Type = IRTypeRef.Object };
                 }
             }
@@ -364,8 +368,17 @@ namespace UVS2CS.GraphToIR.Serialized
 
                 case UnitKind.GetMember:
                 {
-                    var target = ResolveValueInput(unit.Id, "target");
                     var memberName = unit.Member?.Name ?? portKey;
+                    if (unit.Member?.RequiresTarget == false)
+                    {
+                        var typeRef = IRTypeRef.FromName(unit.Member.TargetTypeName);
+                        return new IRMemberAccess
+                        {
+                            Target = new IRIdentifier { Name = typeRef.ShortName },
+                            MemberName = memberName,
+                        };
+                    }
+                    var target = ResolveValueInput(unit.Id, "target");
                     return new IRMemberAccess { Target = target, MemberName = memberName };
                 }
 
@@ -534,14 +547,29 @@ namespace UVS2CS.GraphToIR.Serialized
         {
             var name = unit.TypeName.Split('.').Last();
 
-            return name switch
+            // Unit種別ごとに明示的なケースを優先
+            var key = name switch
             {
                 "If" or "Branch" or "Switch" or "SwitchOnInteger" or "SwitchOnString" or "SwitchOnEnum"
                     or "ToggleFlow" or "TryCatch" => null,
                 "For" or "ForEach" or "While" => "exit",
                 "Once" => "after",
-                _ => "exit",
+                _ when unit.Kind == UnitKind.Variable && name.Contains("SetVariable") => "assigned",
+                _ when unit.Kind == UnitKind.InvokeMember => "exit",
+                _ when unit.Kind == UnitKind.SetMember => "exit",
+                _ => null, // フォールバック: 接続データから探す
             };
+
+            if (key != null) return key;
+
+            // 接続データから実際に存在する出力キーを探す
+            foreach (var edgeKey in _controlEdgesBySource.Keys)
+            {
+                if (edgeKey.StartsWith($"{unit.Id}:"))
+                    return edgeKey.Substring(unit.Id.Length + 1);
+            }
+
+            return null;
         }
 
         static string GetMethodName(SerializedUnit unit)
@@ -560,6 +588,55 @@ namespace UVS2CS.GraphToIR.Serialized
             if (name.Contains("OnInputSystem")) return name;
 
             return name;
+        }
+
+        static IRExpression ConvertStructValue(StructValue sv)
+        {
+            var typeName = sv.TypeName ?? "";
+            var typeRef = IRTypeRef.FromName(typeName);
+            var ctor = new IRConstructorCall { Type = typeRef };
+
+            if (typeName.Contains("Color"))
+            {
+                ctor.Arguments.Add(FloatLiteral(sv, "r"));
+                ctor.Arguments.Add(FloatLiteral(sv, "g"));
+                ctor.Arguments.Add(FloatLiteral(sv, "b"));
+                ctor.Arguments.Add(FloatLiteral(sv, "a"));
+            }
+            else if (typeName.Contains("Vector2"))
+            {
+                ctor.Arguments.Add(FloatLiteral(sv, "x"));
+                ctor.Arguments.Add(FloatLiteral(sv, "y"));
+            }
+            else if (typeName.Contains("Vector3"))
+            {
+                ctor.Arguments.Add(FloatLiteral(sv, "x"));
+                ctor.Arguments.Add(FloatLiteral(sv, "y"));
+                ctor.Arguments.Add(FloatLiteral(sv, "z"));
+            }
+            else if (typeName.Contains("Vector4") || typeName.Contains("Quaternion"))
+            {
+                ctor.Arguments.Add(FloatLiteral(sv, "x"));
+                ctor.Arguments.Add(FloatLiteral(sv, "y"));
+                ctor.Arguments.Add(FloatLiteral(sv, "z"));
+                ctor.Arguments.Add(FloatLiteral(sv, "w"));
+            }
+
+            return ctor;
+        }
+
+        static IRLiteral FloatLiteral(StructValue sv, string fieldName)
+        {
+            var val = sv.Fields.TryGetValue(fieldName, out var v) ? v : 0;
+            float f = val switch
+            {
+                float fv => fv,
+                double dv => (float)dv,
+                int iv => iv,
+                long lv => lv,
+                _ => 0f,
+            };
+            return new IRLiteral { Value = f, Type = IRTypeRef.Float };
         }
 
         static string SanitizeClassName(string name)

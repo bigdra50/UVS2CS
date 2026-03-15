@@ -4,16 +4,18 @@ public class Player_Behavior_ER : MonoBehaviour
 {
     private void OnKeyboardInput()
     {
-        null..ctor(null.velocity.x, jumpStrength);
-        null.velocity = null..ctor(null.velocity.x, jumpStrength);
+        null.SetBool("", false);
     }
 
     private void OnTriggerEnter2D()
     {
+        null.SetTrigger("");
+        null.Destroy(gameObject, 0f);
     }
 
     private void OnKeyboardInput_1()
     {
-        null.SetBool("", false);
+        null..ctor(null.velocity.x, jumpStrength);
+        null.velocity = null..ctor(null.velocity.x, jumpStrength);
     }
 }

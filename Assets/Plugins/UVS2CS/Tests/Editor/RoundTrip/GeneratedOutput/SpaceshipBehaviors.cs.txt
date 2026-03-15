@@ -10,6 +10,7 @@ public class SpaceshipBehaviors : MonoBehaviour
         {
             spaceshipRigidbody.velocity = (null.forward * data.thrustAmount * null.Max(data.thrustInput, 0.4f));
         }
+        spaceshipRigidbody.velocity = (null.forward * data.thrustAmount * null.Max(data.thrustInput, 0.4f));
     }
 
     private void OnboostVisual()
@@ -29,6 +30,8 @@ public class SpaceshipBehaviors : MonoBehaviour
     {
         if (data.shootInput)
         {
+            null.PlayOneShot(PickRandomAudioClip);
         }
+        null.PlayOneShot(PickRandomAudioClip);
     }
 }

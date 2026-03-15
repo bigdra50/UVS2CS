@@ -8,6 +8,7 @@ public class SpaceshipBehaviors_TutorialBase : MonoBehaviour
         {
             spaceshipRigidbody.velocity = (null.forward * data.thrustAmount * null.Max(data.thrustInput, 0.4f));
         }
+        spaceshipRigidbody.velocity = (null.forward * data.thrustAmount * null.Max(data.thrustInput, 0.4f));
     }
 
     private void FixedUpdate_1()

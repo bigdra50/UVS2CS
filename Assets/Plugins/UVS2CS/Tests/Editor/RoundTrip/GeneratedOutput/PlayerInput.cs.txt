@@ -26,5 +26,6 @@ public class PlayerInput : MonoBehaviour
 
     private void OnInputSystemEventButton_4()
     {
+        null.SetBool("", false);
     }
 }

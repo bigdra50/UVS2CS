@@ -12,17 +12,31 @@ public class SpeedBoost_TutorialBase : MonoBehaviour
             if (timer > 0f)
             {
                 Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
-                ShipShader.SetColor("", "{\n  \"r\": 1.0,\n  \"g\": 1.0,\n  \"b\": 1.0,\n  \"a\": 1.0,\n  \"$type\": \"UnityEngine.Color\"\n}");
+                ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
             }
             else
             {
                 boostActive = false;
             }
+            Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
+            ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
         }
+        if (timer > 0f)
+        {
+            Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
+            ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+        }
+        else
+        {
+            boostActive = false;
+        }
+        Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
+        ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
     }
 
     private void OnTriggerEnter()
     {
         boostActive = true;
+        timer = 1f;
     }
 }

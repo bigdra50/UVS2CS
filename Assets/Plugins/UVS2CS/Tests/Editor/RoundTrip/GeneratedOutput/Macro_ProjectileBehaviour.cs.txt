@@ -2,6 +2,12 @@ using UnityEngine;
 
 public class Macro_ProjectileBehaviour : MonoBehaviour
 {
+    private void OnTimerToAutoRemoveProjectile()
+    {
+        yield return new WaitForSeconds(0f);
+        CustomEvent.Trigger("RemoveProjectile", null);
+    }
+
     private void OnRemoveProjectile()
     {
         null.SetActive(false);
@@ -12,19 +18,13 @@ public class Macro_ProjectileBehaviour : MonoBehaviour
         null.StartCoroutine("");
     }
 
-    private void OnTimerToAutoRemoveProjectile()
+    private void FixedUpdate()
     {
-        yield return new WaitForSeconds(0f);
-        CustomEvent.Trigger("RemoveProjectile", null);
+        CustomEvent.Trigger("MoveProjectile", null);
     }
 
     private void OnMoveProjectile()
     {
         null.MovePosition(null + null);
-    }
-
-    private void FixedUpdate()
-    {
-        CustomEvent.Trigger("MoveProjectile", null);
     }
 }

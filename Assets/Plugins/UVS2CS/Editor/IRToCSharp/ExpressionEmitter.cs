@@ -37,9 +37,10 @@ namespace UVS2CS.IRToCSharp
             {
                 bool b => b ? "true" : "false",
                 int i => i.ToString(),
+                long l when l is >= int.MinValue and <= int.MaxValue => ((int)l).ToString(),
                 long l => $"{l}L",
                 float f => f.ToString("G", CultureInfo.InvariantCulture) + "f",
-                double d => d.ToString("G", CultureInfo.InvariantCulture),
+                double d => ((float)d).ToString("G", CultureInfo.InvariantCulture) + "f",
                 string s => $"\"{EscapeString(s)}\"",
                 char c => $"'{EscapeChar(c)}'",
                 _ => lit.Value.ToString(),

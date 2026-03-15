@@ -5,6 +5,13 @@ public class ProjectileBehavior : MonoBehaviour
     private void OnEnable()
     {
         /* Timer: complex timer */;
+        CustomEvent.Trigger("RemoveProjectile", null);
+    }
+
+    private void FixedUpdate()
+    {
+        CustomEvent.Trigger("MoveProjectile", null);
+        CustomEvent.Trigger("CollisionRaycastCheck", null);
     }
 
     private void OnCollisionRaycastCheck()
@@ -15,13 +22,13 @@ public class ProjectileBehavior : MonoBehaviour
             {
                 CustomEvent.Trigger("RemoveProjectile", null);
             }
+            CustomEvent.Trigger("RemoveProjectile", null);
         }
-    }
-
-    private void FixedUpdate()
-    {
-        CustomEvent.Trigger("MoveProjectile", null);
-        CustomEvent.Trigger("CollisionRaycastCheck", null);
+        if (new object().distance <= null.collisionRayDistance)
+        {
+            CustomEvent.Trigger("RemoveProjectile", null);
+        }
+        CustomEvent.Trigger("RemoveProjectile", null);
     }
 
     private void OnMoveProjectile()

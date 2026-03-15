@@ -14,8 +14,27 @@ public class Weapons : MonoBehaviour
             {
                 null.SetTrigger("");
                 currentBullet = null.GetPooledObject();
+                currentBullet.SetPositionAndRotation(bulletSpawnPoint.position);
+                currentBullet.SetActive(false);
             }
+            null.SetTrigger("");
+            currentBullet = null.GetPooledObject();
+            currentBullet.SetPositionAndRotation(bulletSpawnPoint.position);
+            currentBullet.SetActive(false);
         }
+        muzzleVFX.Play();
+        null.GetPooledObject();
+        if (null.GetPooledObject() != null)
+        {
+            null.SetTrigger("");
+            currentBullet = null.GetPooledObject();
+            currentBullet.SetPositionAndRotation(bulletSpawnPoint.position);
+            currentBullet.SetActive(false);
+        }
+        null.SetTrigger("");
+        currentBullet = null.GetPooledObject();
+        currentBullet.SetPositionAndRotation(bulletSpawnPoint.position);
+        currentBullet.SetActive(false);
     }
 
     private void Start()

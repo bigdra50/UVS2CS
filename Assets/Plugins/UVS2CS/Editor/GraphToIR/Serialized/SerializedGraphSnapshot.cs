@@ -2,6 +2,12 @@ using System.Collections.Generic;
 
 namespace UVS2CS.GraphToIR.Serialized
 {
+    public sealed class StructValue
+    {
+        public string TypeName { get; set; }
+        public Dictionary<string, object> Fields { get; } = new();
+    }
+
     /// <summary>
     /// .asset の _data._json から構築されるグラフの完全なスナップショット。
     /// Unity のデシリアライズに依存しない、port key ベースのデータモデル。
