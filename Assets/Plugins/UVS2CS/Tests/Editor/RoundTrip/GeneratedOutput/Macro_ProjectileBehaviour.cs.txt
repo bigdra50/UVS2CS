@@ -17,11 +17,11 @@ public class Macro_ProjectileBehaviour : MonoBehaviour
 
     private void CustomEvent()
     {
+        yield return new WaitForSeconds(0f);
+        CustomEvent.Trigger("RemoveProjectile", null);
     }
 
     private void CustomEvent()
     {
-        yield return new WaitForSeconds(0f);
-        CustomEvent.Trigger("RemoveProjectile", null);
     }
 }

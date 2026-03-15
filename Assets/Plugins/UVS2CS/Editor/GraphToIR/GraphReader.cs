@@ -66,6 +66,7 @@ namespace UVS2CS.GraphToIR
             resolver.AnalyzeFanOut(graph);
 
             var tracer = new FlowTracer(_registry, resolver);
+            tracer.SetGraph(graph);
 
             foreach (var unit in graph.units)
             {

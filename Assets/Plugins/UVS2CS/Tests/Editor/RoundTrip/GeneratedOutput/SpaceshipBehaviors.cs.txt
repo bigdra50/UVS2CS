@@ -11,11 +11,11 @@ public class SpaceshipBehaviors : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
+    private void CustomEvent()
     {
     }
 
-    private void CustomEvent()
+    private void FixedUpdate()
     {
     }
 

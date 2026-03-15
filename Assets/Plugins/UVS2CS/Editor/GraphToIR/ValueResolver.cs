@@ -13,6 +13,8 @@ namespace UVS2CS.GraphToIR
         readonly Dictionary<ValueOutput, string> _tempVarNames = new();
         int _tempVarCounter;
 
+        FlowGraph _graph;
+
         public List<IRStatement> PreambleStatements { get; } = new();
 
         public ValueResolver(UnitHandlerRegistry registry)
@@ -22,6 +24,7 @@ namespace UVS2CS.GraphToIR
 
         public void AnalyzeFanOut(FlowGraph graph)
         {
+            _graph = graph;
             _fanOutCounts.Clear();
             foreach (var conn in graph.valueConnections)
             {
@@ -66,6 +69,74 @@ namespace UVS2CS.GraphToIR
             }
 
             return ResolveDefault(port);
+        }
+
+        /// <summary>
+        /// Define() 失敗でポートが存在しない Unit の値入力を、グラフの接続コレクションから解決する。
+        /// </summary>
+        public IRExpression ResolveByKey(IUnit unit, string portKey)
+        {
+            if (_graph == null) return ResolveDefaultByKey(unit, portKey);
+
+            // ポートが存在する場合は通常解決
+            var port = unit.valueInputs.FirstOrDefault(p => p.key == portKey);
+            if (port != null) return Resolve(port);
+
+            // 正常な接続コレクションから探す
+            foreach (var conn in _graph.valueConnections)
+            {
+                if (!conn.destinationExists || !conn.sourceExists) continue;
+                if (conn.destination.unit != unit || conn.destination.key != portKey) continue;
+
+                var sourceUnit = conn.source.unit;
+                var sourcePort = conn.source;
+                return ResolveFromUnit(sourceUnit, sourcePort);
+            }
+
+            // InvalidConnection コレクションからも探す（Define失敗した接続）
+            foreach (var conn in _graph.invalidConnections)
+            {
+                if (!conn.sourceExists || !conn.destinationExists) continue;
+                try
+                {
+                    var dest = conn.destination;
+                    if (dest.unit != unit || dest.key != portKey) continue;
+
+                    var src = conn.source;
+                    var srcUnit = src.unit;
+
+                    // 接続元が GetMember/GetVariable 等の場合、member フィールドから読む
+                    var handler = _registry.GetHandler(srcUnit);
+                    if (handler != null)
+                    {
+                        var srcValueOutput = srcUnit.valueOutputs.FirstOrDefault(p => p.key == src.key);
+                        if (srcValueOutput != null)
+                            return handler.HandleValue(srcUnit, srcValueOutput, this);
+
+                        // valueOutputs にもない場合、ポートキーだけで推定
+                        return handler.HandleValue(srcUnit, null, this);
+                    }
+                }
+                catch { /* source/destination access may throw */ }
+            }
+
+            return ResolveDefaultByKey(unit, portKey);
+        }
+
+        /// <summary>
+        /// Define() 失敗した Unit のデフォルト値を取得する。
+        /// </summary>
+        IRExpression ResolveDefaultByKey(IUnit unit, string portKey)
+        {
+            if (unit.defaultValues.TryGetValue(portKey, out var value))
+            {
+                return new IRLiteral
+                {
+                    Value = value,
+                    Type = IRTypeRef.FromType(value?.GetType()),
+                };
+            }
+            return new IRNull();
         }
 
         IRExpression ResolveFromUnit(IUnit unit, ValueOutput port)

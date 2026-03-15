@@ -9,12 +9,15 @@ namespace UVS2CS.GraphToIR
     {
         readonly UnitHandlerRegistry _registry;
         readonly ValueResolver _resolver;
+        FlowGraph _graph;
 
         public FlowTracer(UnitHandlerRegistry registry, ValueResolver resolver)
         {
             _registry = registry;
             _resolver = resolver;
         }
+
+        public void SetGraph(FlowGraph graph) => _graph = graph;
 
         public IRBlock TraceFrom(ControlOutput startPort)
         {
@@ -50,11 +53,14 @@ namespace UVS2CS.GraphToIR
             return block;
         }
 
-        static ControlOutput GetContinuationPort(IUnit unit, ControlInput entryPort)
+        ControlOutput GetContinuationPort(IUnit unit, ControlInput entryPort)
         {
+            // Define() 失敗で controlOutputs が空の場合、グラフの接続コレクションから探す
+            if (unit.controlOutputs.Count == 0 && _graph != null)
+                return FindContinuationFromGraph(unit, entryPort?.key ?? "enter", "exit");
+
             switch (unit)
             {
-                // 分岐系: ハンドラ内で各分岐を TraceFrom するため継続なし
                 case If:
                 case SwitchOnInteger:
                 case SwitchOnString:
@@ -63,35 +69,51 @@ namespace UVS2CS.GraphToIR
                 case ToggleFlow:
                     return null;
 
-                // ループ系: exit ポートが継続
                 case While:
                 case For:
                 case ForEach:
                     return unit.controlOutputs.FirstOrDefault(p => p.key == "exit");
 
-                // Once: after ポートが継続（once は初回のみ）
                 case Once:
                     return unit.controlOutputs.FirstOrDefault(p => p.key == "after");
 
-                // SelectOnFlow: exit ポートが継続
                 case SelectOnFlow:
-                    return unit.controlOutputs.FirstOrDefault(p => p.key == "exit");
-
-                // WaitUnit 系: exit ポートが継続（コルーチン完了後）
                 case WaitUnit:
                     return unit.controlOutputs.FirstOrDefault(p => p.key == "exit");
 
-                // Timer/Cooldown: 複数出力がある複雑な Unit、継続なし
                 case Timer:
                 case Cooldown:
                     return null;
 
-                // デフォルト: exit → assigned → 最初のポート
                 default:
                     return unit.controlOutputs.FirstOrDefault(p => p.key == "exit")
                         ?? unit.controlOutputs.FirstOrDefault(p => p.key == "assigned")
                         ?? unit.controlOutputs.FirstOrDefault();
             }
+        }
+
+        /// <summary>
+        /// Define() 失敗した Unit の制御フロー継続を、グラフの接続コレクションから直接探す。
+        /// </summary>
+        ControlOutput FindContinuationFromGraph(IUnit unit, string entryKey, string exitKey)
+        {
+            foreach (var conn in _graph.controlConnections)
+            {
+                if (!conn.sourceExists) continue;
+                if (conn.source.unit != unit) continue;
+                if (conn.source.key == exitKey)
+                    return conn.source;
+            }
+
+            // exit がなければ最初の出力を返す
+            foreach (var conn in _graph.controlConnections)
+            {
+                if (!conn.sourceExists) continue;
+                if (conn.source.unit != unit) continue;
+                return conn.source;
+            }
+
+            return null;
         }
     }
 }

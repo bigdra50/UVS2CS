@@ -19,7 +19,7 @@ namespace UVS2CS.GraphToIR.UnitHandlers
             if (unit is SetMember setMember)
             {
                 var target = ResolveTarget(setMember, resolver);
-                var value = resolver.Resolve(setMember.valueInputs["input"]);
+                var value = resolver.ResolveByKey(setMember, "input");
 
                 return new IRAssignment
                 {
@@ -53,23 +53,20 @@ namespace UVS2CS.GraphToIR.UnitHandlers
                 }
 
                 case SetMember setMember:
-                {
-                    var nameExpr = resolver.Resolve(setMember.valueInputs["input"]);
-                    return nameExpr;
-                }
+                    return resolver.ResolveByKey(setMember, "input");
 
                 case CreateStruct createStruct:
-                {
-                    var ctor = new IRConstructorCall
+                    return new IRConstructorCall
                     {
                         Type = IRTypeRef.FromType(createStruct.type),
                     };
-                    return ctor;
-                }
 
                 case Expose expose:
                 {
-                    var input = resolver.Resolve(expose.valueInputs.First());
+                    var firstInput = expose.valueInputs.FirstOrDefault();
+                    var input = firstInput != null
+                        ? resolver.Resolve(firstInput)
+                        : new IRThis();
                     return new IRMemberAccess
                     {
                         Target = input,
@@ -93,18 +90,23 @@ namespace UVS2CS.GraphToIR.UnitHandlers
             };
 
             if (member.requiresTarget)
+                call.Target = resolver.ResolveByKey(invoke, "target");
+
+            // ポートが存在する場合: ポート経由で引数を解決
+            var paramInputs = invoke.valueInputs.Where(p => p.key.StartsWith("%")).ToList();
+            if (paramInputs.Count > 0)
             {
-                var targetInput = invoke.valueInputs.FirstOrDefault(p => p.key == "target");
-                if (targetInput != null)
-                    call.Target = resolver.Resolve(targetInput);
+                foreach (var input in paramInputs)
+                    call.Arguments.Add(resolver.Resolve(input));
             }
-
-            foreach (var input in invoke.valueInputs)
+            else
             {
-                if (input.key == "target") continue;
-                if (!input.key.StartsWith("%")) continue;
-
-                call.Arguments.Add(resolver.Resolve(input));
+                // Define() 失敗でポートがない場合: defaultValues から引数名を推定
+                foreach (var kv in invoke.defaultValues)
+                {
+                    if (!kv.Key.StartsWith("%")) continue;
+                    call.Arguments.Add(resolver.ResolveByKey(invoke, kv.Key));
+                }
             }
 
             return call;
@@ -115,11 +117,7 @@ namespace UVS2CS.GraphToIR.UnitHandlers
             if (!memberUnit.member.requiresTarget)
                 return null;
 
-            var targetInput = memberUnit.valueInputs.FirstOrDefault(p => p.key == "target");
-            if (targetInput != null)
-                return resolver.Resolve(targetInput);
-
-            return new IRThis();
+            return resolver.ResolveByKey(memberUnit, "target");
         }
     }
 }

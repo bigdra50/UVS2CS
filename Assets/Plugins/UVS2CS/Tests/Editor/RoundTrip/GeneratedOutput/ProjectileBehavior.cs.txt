@@ -13,6 +13,13 @@ public class ProjectileBehavior : MonoBehaviour
 
     private void CustomEvent()
     {
+        if (false)
+        {
+            if (0f <= 0f)
+            {
+                CustomEvent.Trigger("RemoveProjectile", null);
+            }
+        }
     }
 
     private void FixedUpdate()
@@ -23,12 +30,5 @@ public class ProjectileBehavior : MonoBehaviour
 
     private void CustomEvent()
     {
-        if (false)
-        {
-            if (0f <= 0f)
-            {
-                CustomEvent.Trigger("RemoveProjectile", null);
-            }
-        }
     }
 }
