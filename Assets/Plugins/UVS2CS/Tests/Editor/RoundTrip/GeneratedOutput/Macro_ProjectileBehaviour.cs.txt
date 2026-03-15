@@ -2,12 +2,9 @@ using UnityEngine;
 
 public class Macro_ProjectileBehaviour : MonoBehaviour
 {
-    private void CustomEvent()
+    private void FixedUpdate()
     {
-    }
-
-    private void CustomEvent()
-    {
+        CustomEvent.Trigger("MoveProjectile", null);
     }
 
     private void CustomEvent()
@@ -16,12 +13,15 @@ public class Macro_ProjectileBehaviour : MonoBehaviour
         CustomEvent.Trigger("RemoveProjectile", null);
     }
 
-    private void FixedUpdate()
+    private void OnEnable()
     {
-        CustomEvent.Trigger("MoveProjectile", null);
     }
 
-    private void OnEnable()
+    private void CustomEvent()
+    {
+    }
+
+    private void CustomEvent()
     {
     }
 }

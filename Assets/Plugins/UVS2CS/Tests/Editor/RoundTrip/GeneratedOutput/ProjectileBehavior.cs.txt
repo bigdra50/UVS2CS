@@ -7,6 +7,10 @@ public class ProjectileBehavior : MonoBehaviour
         /* Timer: complex timer - requires manual conversion */;
     }
 
+    private void CustomEvent()
+    {
+    }
+
     private void FixedUpdate()
     {
         CustomEvent.Trigger("MoveProjectile", null);
@@ -26,9 +30,5 @@ public class ProjectileBehavior : MonoBehaviour
                 CustomEvent.Trigger("RemoveProjectile", null);
             }
         }
-    }
-
-    private void CustomEvent()
-    {
     }
 }

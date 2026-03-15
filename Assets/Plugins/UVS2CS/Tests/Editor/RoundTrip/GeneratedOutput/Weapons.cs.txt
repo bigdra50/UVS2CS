@@ -4,14 +4,14 @@ public class Weapons : MonoBehaviour
 {
     private object currentBullet;
 
+    private void Start()
+    {
+    }
+
     private void CustomEvent()
     {
         if (false)
         {
         }
-    }
-
-    private void Start()
-    {
     }
 }

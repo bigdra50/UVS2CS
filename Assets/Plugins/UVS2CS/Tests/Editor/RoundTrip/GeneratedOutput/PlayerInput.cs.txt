@@ -6,15 +6,9 @@ public class PlayerInput : MonoBehaviour
 
     private void OnInputSystemEventButton()
     {
-    }
-
-    private void OnInputSystemEventButton()
-    {
-        CustomEvent.Trigger("ForcefieldOn", forcefieldVFX);
-    }
-
-    private void OnInputSystemEventButton()
-    {
+        if (_isToggleOn)
+        {
+        }
     }
 
     private void OnInputSystemEventButton()
@@ -24,8 +18,14 @@ public class PlayerInput : MonoBehaviour
 
     private void OnInputSystemEventButton()
     {
-        if (_isToggleOn)
-        {
-        }
+    }
+
+    private void OnInputSystemEventButton()
+    {
+        CustomEvent.Trigger("ForcefieldOn", forcefieldVFX);
+    }
+
+    private void OnInputSystemEventButton()
+    {
     }
 }

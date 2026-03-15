@@ -1,3 +1,4 @@
+#if UVS2CS_HAS_ROSLYN
 using NUnit.Framework;
 using UVS2CS.CSharpToIR;
 using UVS2CS.IR;
@@ -213,3 +214,4 @@ public class TestScript : MonoBehaviour
         }
     }
 }
+#endif

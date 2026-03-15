@@ -3,7 +3,9 @@ using System.IO;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+#if UVS2CS_HAS_ROSLYN
 using UVS2CS.CSharpToIR;
+#endif
 using UVS2CS.GraphToIR;
 using UVS2CS.IRToCSharp;
 using UVS2CS.IRToGraph;
@@ -26,7 +28,12 @@ namespace UVS2CS.UI
 
         void OnGUI()
         {
+#if UVS2CS_HAS_ROSLYN
             _tabIndex = GUILayout.Toolbar(_tabIndex, new[] { "Graph → C#", "C# → Graph" });
+#else
+            _tabIndex = 0;
+            EditorGUILayout.LabelField("Graph → C# Converter");
+#endif
 
             EditorGUILayout.Space(8);
 
@@ -35,9 +42,11 @@ namespace UVS2CS.UI
                 case 0:
                     DrawGraphToCSharp();
                     break;
+#if UVS2CS_HAS_ROSLYN
                 case 1:
                     DrawCSharpToGraph();
                     break;
+#endif
             }
         }
 
@@ -76,6 +85,7 @@ namespace UVS2CS.UI
             }
         }
 
+#if UVS2CS_HAS_ROSLYN
         void DrawCSharpToGraph()
         {
             _sourceScript = (TextAsset)EditorGUILayout.ObjectField(
@@ -89,6 +99,7 @@ namespace UVS2CS.UI
                     ConvertCSharpToGraph();
             }
         }
+#endif
 
         void ConvertGraphToCSharp()
         {
@@ -105,6 +116,7 @@ namespace UVS2CS.UI
             }
         }
 
+#if UVS2CS_HAS_ROSLYN
         void ConvertCSharpToGraph()
         {
             try
@@ -132,6 +144,7 @@ namespace UVS2CS.UI
                 Debug.LogError($"[UVS2CS] Conversion failed: {e}");
             }
         }
+#endif
 
         void SaveCSharpFile()
         {

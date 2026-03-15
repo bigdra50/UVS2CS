@@ -1,3 +1,4 @@
+#if UVS2CS_HAS_ROSLYN
 using System.Linq;
 using NUnit.Framework;
 using Unity.VisualScripting;
@@ -41,7 +42,8 @@ namespace UVS2CS.Tests.RoundTrip
             var code = CSharpEmitter.Emit(ir);
             Assert.IsNotEmpty(code);
 
-            Debug.Log($"=== SU_UpdateScore ===\n{code}");
+            Debug.Log($"=== SU_UpdateScore ===
+{code}");
 
             StringAssert.Contains("class SU_UpdateScore", code);
             StringAssert.Contains("MonoBehaviour", code);
@@ -58,7 +60,8 @@ namespace UVS2CS.Tests.RoundTrip
             var code = CSharpEmitter.Emit(ir);
 
             Assert.IsNotEmpty(code);
-            Debug.Log($"=== Obstacle_Behavior_ER ===\n{code}");
+            Debug.Log($"=== Obstacle_Behavior_ER ===
+{code}");
 
             StringAssert.Contains("class Obstacle_Behavior_ER", code);
         }
@@ -74,7 +77,8 @@ namespace UVS2CS.Tests.RoundTrip
             var code = CSharpEmitter.Emit(ir);
 
             Assert.IsNotEmpty(code);
-            Debug.Log($"=== PlayerInput ===\n{code}");
+            Debug.Log($"=== PlayerInput ===
+{code}");
 
             StringAssert.Contains("class PlayerInput", code);
         }
@@ -90,7 +94,8 @@ namespace UVS2CS.Tests.RoundTrip
             var code = CSharpEmitter.Emit(ir);
 
             Assert.IsNotEmpty(code);
-            Debug.Log($"=== Weapons ===\n{code}");
+            Debug.Log($"=== Weapons ===
+{code}");
 
             StringAssert.Contains("class Weapons", code);
         }
@@ -106,7 +111,8 @@ namespace UVS2CS.Tests.RoundTrip
             var code = CSharpEmitter.Emit(ir);
 
             Assert.IsNotEmpty(code);
-            Debug.Log($"=== SpeedBoost_TutorialBase ===\n{code}");
+            Debug.Log($"=== SpeedBoost_TutorialBase ===
+{code}");
 
             StringAssert.Contains("class SpeedBoost_TutorialBase", code);
         }
@@ -122,7 +128,8 @@ namespace UVS2CS.Tests.RoundTrip
             var code = CSharpEmitter.Emit(ir);
 
             Assert.IsNotEmpty(code);
-            Debug.Log($"=== ProjectileBehavior ===\n{code}");
+            Debug.Log($"=== ProjectileBehavior ===
+{code}");
 
             StringAssert.Contains("class ProjectileBehavior", code);
         }
@@ -163,7 +170,8 @@ namespace UVS2CS.Tests.RoundTrip
 
             // IR → C#
             var code = CSharpEmitter.Emit(ir1);
-            Debug.Log($"=== FullRoundTrip Step 1: C# ===\n{code}");
+            Debug.Log($"=== FullRoundTrip Step 1: C# ===
+{code}");
 
             // C# → IR
             var parser = new CSharpParser();
@@ -178,10 +186,12 @@ namespace UVS2CS.Tests.RoundTrip
 
             // IR → C# (最終出力)
             var code2 = CSharpEmitter.Emit(ir3);
-            Debug.Log($"=== FullRoundTrip Step 2: C# ===\n{code2}");
+            Debug.Log($"=== FullRoundTrip Step 2: C# ===
+{code2}");
 
             Assert.AreEqual(ir1.ClassName, ir3.ClassName);
             StringAssert.Contains("class " + ir1.ClassName, code2);
         }
     }
 }
+#endif
