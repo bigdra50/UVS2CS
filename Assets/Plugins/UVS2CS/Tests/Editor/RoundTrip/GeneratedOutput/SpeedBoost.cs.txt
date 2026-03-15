@@ -11,37 +11,37 @@ public class SpeedBoost : MonoBehaviour
         {
             if (timer > 0f)
             {
-                Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
-                ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
-                Player.CustomizeTrail(0f, 0f, new Color(1f, 1f, 1f, 1f));
-                timer = timer - null.deltaTime;
+                Player.AddForce(speedBoostMultiplier * Player.forward, "Impulse");
+                ShipShader.SetColor("_EmissionColor", new Color(1f, 0.7886922f, 0f, 1f));
+                Player.CustomizeTrail(0.6f, 0.8f, new Color(1f, 0.6786757f, 0f, 1f));
+                timer = timer - Time.deltaTime;
             }
             else
             {
                 boostActive = false;
                 Player.ResetTrail();
-                ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+                ShipShader.SetColor("_EmissionColor", new Color(1f, 1f, 1f, 1f));
             }
             boostActive = false;
             Player.ResetTrail();
-            ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+            ShipShader.SetColor("_EmissionColor", new Color(1f, 1f, 1f, 1f));
         }
         if (timer > 0f)
         {
-            Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
-            ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
-            Player.CustomizeTrail(0f, 0f, new Color(1f, 1f, 1f, 1f));
-            timer = timer - null.deltaTime;
+            Player.AddForce(speedBoostMultiplier * Player.forward, "Impulse");
+            ShipShader.SetColor("_EmissionColor", new Color(1f, 0.7886922f, 0f, 1f));
+            Player.CustomizeTrail(0.6f, 0.8f, new Color(1f, 0.6786757f, 0f, 1f));
+            timer = timer - Time.deltaTime;
         }
         else
         {
             boostActive = false;
             Player.ResetTrail();
-            ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+            ShipShader.SetColor("_EmissionColor", new Color(1f, 1f, 1f, 1f));
         }
         boostActive = false;
         Player.ResetTrail();
-        ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+        ShipShader.SetColor("_EmissionColor", new Color(1f, 1f, 1f, 1f));
     }
 
     private void OnTriggerEnter()

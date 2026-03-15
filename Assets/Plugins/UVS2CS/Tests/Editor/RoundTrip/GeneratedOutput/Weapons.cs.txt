@@ -4,41 +4,41 @@ public class Weapons : MonoBehaviour
 {
     private object currentBullet;
 
+    private void Start()
+    {
+        muzzleFlash.Stop();
+    }
+
     private void OnFire()
     {
-        if (terraformerAnimator.GetBool(""))
+        if (terraformerAnimator.GetBool("combatMode"))
         {
             muzzleVFX.Play();
             null.GetPooledObject();
             if (null.GetPooledObject() != null)
             {
-                null.SetTrigger("");
+                null.SetTrigger("shoot");
                 currentBullet = null.GetPooledObject();
                 currentBullet.SetPositionAndRotation(bulletSpawnPoint.position);
-                currentBullet.SetActive(false);
+                currentBullet.SetActive(true);
             }
-            null.SetTrigger("");
+            null.SetTrigger("shoot");
             currentBullet = null.GetPooledObject();
             currentBullet.SetPositionAndRotation(bulletSpawnPoint.position);
-            currentBullet.SetActive(false);
+            currentBullet.SetActive(true);
         }
         muzzleVFX.Play();
         null.GetPooledObject();
         if (null.GetPooledObject() != null)
         {
-            null.SetTrigger("");
+            null.SetTrigger("shoot");
             currentBullet = null.GetPooledObject();
             currentBullet.SetPositionAndRotation(bulletSpawnPoint.position);
-            currentBullet.SetActive(false);
+            currentBullet.SetActive(true);
         }
-        null.SetTrigger("");
+        null.SetTrigger("shoot");
         currentBullet = null.GetPooledObject();
         currentBullet.SetPositionAndRotation(bulletSpawnPoint.position);
-        currentBullet.SetActive(false);
-    }
-
-    private void Start()
-    {
-        muzzleFlash.Stop();
+        currentBullet.SetActive(true);
     }
 }

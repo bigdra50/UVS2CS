@@ -6,17 +6,17 @@ public class PlayerInput : MonoBehaviour
 
     private void OnInputSystemEventButton()
     {
-        null.Quit();
+        null.SetBool("combatMode", true);
     }
 
     private void OnInputSystemEventButton_1()
     {
-        null.Play(null);
+        CustomEvent.Trigger("Fire", null);
     }
 
     private void OnInputSystemEventButton_2()
     {
-        CustomEvent.Trigger("Fire", null);
+        null.Play(0);
     }
 
     private void OnInputSystemEventButton_3()
@@ -26,6 +26,6 @@ public class PlayerInput : MonoBehaviour
 
     private void OnInputSystemEventButton_4()
     {
-        null.SetBool("", false);
+        Application.Quit();
     }
 }

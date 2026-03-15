@@ -10,12 +10,64 @@ namespace UVS2CS.GraphToIR.Serialized
     {
         public static SerializedGraphSnapshot Parse(ScriptGraphAsset asset)
         {
-            var so = new SerializedObject(asset);
-            var jsonProp = so.FindProperty("_data._json");
-            if (jsonProp == null || string.IsNullOrEmpty(jsonProp.stringValue))
+            // アセットファイルから直接 JSON を読む。
+            // SerializedObject 経由だと Define() でリセットされた defaultValues が返されるため。
+            var assetPath = AssetDatabase.GetAssetPath(asset);
+            if (string.IsNullOrEmpty(assetPath))
                 return new SerializedGraphSnapshot();
 
-            return ParseJson(jsonProp.stringValue);
+            var jsonStr = ExtractJsonFromAssetFile(assetPath);
+            if (string.IsNullOrEmpty(jsonStr))
+            {
+                // フォールバック: SerializedObject から読む
+                var so = new SerializedObject(asset);
+                var jsonProp = so.FindProperty("_data._json");
+                if (jsonProp == null || string.IsNullOrEmpty(jsonProp.stringValue))
+                    return new SerializedGraphSnapshot();
+                jsonStr = jsonProp.stringValue;
+            }
+
+            return ParseJson(jsonStr);
+        }
+
+        static string ExtractJsonFromAssetFile(string assetPath)
+        {
+            var fullPath = System.IO.Path.GetFullPath(assetPath);
+            if (!System.IO.File.Exists(fullPath)) return null;
+
+            var text = System.IO.File.ReadAllText(fullPath);
+
+            // YAML 内の _json: 'JSON...' を抽出
+            const string marker = "_json: '";
+            var startIdx = text.IndexOf(marker);
+            if (startIdx < 0) return null;
+            startIdx += marker.Length;
+
+            // YAML の単一引用符文字列: '' でエスケープされた ' を処理
+            var sb = new System.Text.StringBuilder();
+            for (var i = startIdx; i < text.Length; i++)
+            {
+                if (text[i] == '\'')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '\'')
+                    {
+                        sb.Append('\'');
+                        i++; // skip escaped quote
+                    }
+                    else
+                    {
+                        break; // end of string
+                    }
+                }
+                else
+                {
+                    sb.Append(text[i]);
+                }
+            }
+
+            // YAML のフロースカラーでは改行が空白に置換される
+            var json = sb.ToString().Replace("\n      ", " ").Replace("\n    ", " ");
+            return json.Length > 2 ? json : null;
         }
 
         public static SerializedGraphSnapshot ParseJson(string json)

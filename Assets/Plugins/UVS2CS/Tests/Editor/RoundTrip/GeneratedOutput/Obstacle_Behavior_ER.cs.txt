@@ -4,11 +4,11 @@ public class Obstacle_Behavior_ER : MonoBehaviour
 {
     private void OnTriggerEnter2D()
     {
-        null.position = null..ctor(0f, null.Range(minHeight, maxHeight), 0f);
+        null.position = .ctor(15f, Range(minHeight, maxHeight), 0f);
     }
 
     private void FixedUpdate()
     {
-        null.velocity = null..ctor(speed, 0f);
+        null.velocity = .ctor(speed, 0f);
     }
 }

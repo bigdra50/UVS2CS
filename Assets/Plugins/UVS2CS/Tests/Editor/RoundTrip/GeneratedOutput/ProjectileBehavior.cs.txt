@@ -8,29 +8,6 @@ public class ProjectileBehavior : MonoBehaviour
         CustomEvent.Trigger("RemoveProjectile", null);
     }
 
-    private void FixedUpdate()
-    {
-        CustomEvent.Trigger("MoveProjectile", null);
-        CustomEvent.Trigger("CollisionRaycastCheck", null);
-    }
-
-    private void OnCollisionRaycastCheck()
-    {
-        if (null.Raycast(null.position, null.forward, new object().distance, 100))
-        {
-            if (new object().distance <= null.collisionRayDistance)
-            {
-                CustomEvent.Trigger("RemoveProjectile", null);
-            }
-            CustomEvent.Trigger("RemoveProjectile", null);
-        }
-        if (new object().distance <= null.collisionRayDistance)
-        {
-            CustomEvent.Trigger("RemoveProjectile", null);
-        }
-        CustomEvent.Trigger("RemoveProjectile", null);
-    }
-
     private void OnMoveProjectile()
     {
         null.MovePosition(null + null);
@@ -39,5 +16,28 @@ public class ProjectileBehavior : MonoBehaviour
     private void OnRemoveProjectile()
     {
         null.SetActive(false);
+    }
+
+    private void OnCollisionRaycastCheck()
+    {
+        if (Raycast(null.position, null.forward, RaycastHit.distance, 100))
+        {
+            if (RaycastHit.distance <= 0.collisionRayDistance)
+            {
+                CustomEvent.Trigger("RemoveProjectile", null);
+            }
+            CustomEvent.Trigger("RemoveProjectile", null);
+        }
+        if (RaycastHit.distance <= 0.collisionRayDistance)
+        {
+            CustomEvent.Trigger("RemoveProjectile", null);
+        }
+        CustomEvent.Trigger("RemoveProjectile", null);
+    }
+
+    private void FixedUpdate()
+    {
+        CustomEvent.Trigger("MoveProjectile", null);
+        CustomEvent.Trigger("CollisionRaycastCheck", null);
     }
 }

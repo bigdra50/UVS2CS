@@ -11,27 +11,27 @@ public class SpeedBoost_TutorialBase : MonoBehaviour
         {
             if (timer > 0f)
             {
-                Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
-                ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+                Player.AddForce(speedBoostMultiplier * Player.forward, "Impulse");
+                ShipShader.SetColor("_EmissionColor", new Color(1f, 0.7886922f, 0f, 1f));
             }
             else
             {
                 boostActive = false;
             }
-            Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
-            ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+            Player.AddForce(speedBoostMultiplier * Player.forward, "Impulse");
+            ShipShader.SetColor("_EmissionColor", new Color(1f, 0.7886922f, 0f, 1f));
         }
         if (timer > 0f)
         {
-            Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
-            ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+            Player.AddForce(speedBoostMultiplier * Player.forward, "Impulse");
+            ShipShader.SetColor("_EmissionColor", new Color(1f, 0.7886922f, 0f, 1f));
         }
         else
         {
             boostActive = false;
         }
-        Player.AddForce(speedBoostMultiplier * Player.forward, "Force");
-        ShipShader.SetColor("", new Color(1f, 1f, 1f, 1f));
+        Player.AddForce(speedBoostMultiplier * Player.forward, "Impulse");
+        ShipShader.SetColor("_EmissionColor", new Color(1f, 0.7886922f, 0f, 1f));
     }
 
     private void OnTriggerEnter()
